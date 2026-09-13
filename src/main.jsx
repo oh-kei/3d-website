@@ -1,24 +1,33 @@
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { ContactShadows, Environment, Float, RoundedBox } from '@react-three/drei'
+import { ContactShadows, Environment, Float, RoundedBox, Text, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import './styles.css'
 
+const CV_SCRIBBLES = [
+  [[-0.4, 0.12], [-0.29, 0.17], [-0.17, 0.08], [-0.04, 0.14], [0.09, 0.09], [0.23, 0.16], [0.39, 0.11]],
+  [[-0.4, -0.05], [-0.32, -0.01], [-0.21, -0.08], [-0.07, -0.02], [0.05, -0.07], [0.2, 0], [0.36, -0.05]],
+  [[-0.4, -0.22], [-0.31, -0.17], [-0.19, -0.25], [-0.03, -0.18], [0.12, -0.24], [0.25, -0.17], [0.37, -0.22]],
+  [[-0.4, -0.39], [-0.34, -0.35], [-0.24, -0.43], [-0.1, -0.35], [0.03, -0.41], [0.17, -0.34], [0.38, -0.39]],
+  [[-0.4, -0.56], [-0.29, -0.51], [-0.13, -0.59], [0.01, -0.52], [0.16, -0.58], [0.28, -0.51], [0.38, -0.56]],
+].map((points) => new THREE.CatmullRomCurve3(points.map(([x, y]) => new THREE.Vector3(x, y, 0.061)), false, 'centripetal'))
 const PROJECTS = [
-  { title: 'Veronitech', type: 'Digital product', year: '2025', color: '#db704e', note: 'A focused product experience shaped around clarity and momentum.', shape: 'orbit' },
-  { title: 'UniMatch', type: 'Platform design', year: '2025', color: '#4b678f', note: 'A thoughtful matching space for ambitious university communities.', shape: 'tiles' },
-  { title: "Mariners’ Markets", type: 'Identity & web', year: '2024', color: '#d49d3d', note: 'A modern market identity with a warm, local point of view.', shape: 'market' },
-  { title: 'GitHub', type: 'Open source', year: 'Ongoing', color: '#2f343a', note: 'Experiments, prototypes, and the work behind the work.', shape: 'github', href: 'https://github.com/oh-kei' },
-  { title: 'Coming soon', type: 'In progress', year: '2026', color: '#9c9589', note: 'A new idea is taking shape. Check back soon.', shape: 'soon' },
+  { title: 'Veronitech', type: 'Digital product', year: '2025', color: '#2A2864', note: 'Built a responsive landing page for a hospitality-tech startup, and improved the product dashboard experience.', details: 'As a Software Engineer at Veronitech from January to September 2026, I built the company’s responsive landing page from scratch with React, Vite, and Tailwind CSS, then deployed it on Netlify. I also redesigned and enhanced the dashboard, improving the interface, user experience, and its connection to backend systems.', website: 'https://veronitech.co', shape: 'orbit' },
+  { title: 'UniMatch', type: 'Platform design', year: '2025', color: '#4b678f', note: 'Helped create a social networking app for University students in Hong Kong', shape: 'tiles' },
+  { title: "Mariners’ Markets", type: 'Identity & web', year: '2024', color: '#d49d3d', note: 'Contracted to build an e-commerce site from scratch for an international marine products distributor', shape: 'market' },
+  { title: 'GitHub', type: 'Open source', year: 'Ongoing', color: '#2f343a', note: 'Find my projects here!', shape: 'github', href: 'https://github.com/oh-kei' },
+  { title: 'CV', type: 'Curriculum vitae', year: '2026', color: '#2A2864', note: 'An overview of my projects, selected work, and technical skills.', shape: 'cv', pdf: '/cv/Kei%20CV.pdf', preview: '/cv/Kei-CV.png' },
 ]
 
 function PlaceholderObject({ project, active }) {
   const group = useRef()
+  const cursor = useRef()
   useFrame((state, delta) => {
     if (!group.current) return
     group.current.rotation.y += delta * (active ? 0.62 : 0.09)
     group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, active ? Math.sin(state.clock.elapsedTime * 0.7) * 0.05 : 0, 0.06)
+    if (cursor.current) cursor.current.visible = Math.floor(state.clock.elapsedTime * 2) % 2 === 0
   })
   const accent = new THREE.Color(project.color)
   const pale = accent.clone().lerp(new THREE.Color('#ffffff'), 0.58)
@@ -37,13 +46,41 @@ function PlaceholderObject({ project, active }) {
         <mesh position={[0, 0.62, 0]} rotation={[0.22, 0.45, 0]}><torusGeometry args={[0.52, 0.1, 16, 32]} /><meshStandardMaterial color="#f6e2af" roughness={0.35} /></mesh>
         <mesh position={[0.45, 0.82, 0.05]}><sphereGeometry args={[0.18, 24, 24]} /><meshStandardMaterial color="#f7d47a" /></mesh>
       </>}
-      {project.shape === 'github' && <mesh rotation={[0.1, 0.45, 0.05]}><icosahedronGeometry args={[1, 2]} /><meshStandardMaterial color={project.color} roughness={0.22} metalness={0.15} /></mesh>}
-      {project.shape === 'soon' && <><mesh><torusKnotGeometry args={[0.66, 0.21, 128, 20]} /><meshStandardMaterial color={project.color} roughness={0.32} /></mesh><mesh scale={0.55}><sphereGeometry args={[0.55, 32, 32]} /><meshStandardMaterial color="#f8f7f3" roughness={0.45} /></mesh></>}
+      {project.shape === 'github' && <group rotation={[0.08, 0.28, 0.03]}><RoundedBox args={[1.5, 1.04, 0.22]} radius={0.09} smoothness={4}><meshStandardMaterial color="#272b31" roughness={0.3} metalness={0.18} /></RoundedBox><mesh position={[0, 0, 0.116]}><planeGeometry args={[1.32, 0.86]} /><meshBasicMaterial color="#111316" /></mesh><mesh position={[0, 0.3, 0.123]}><boxGeometry args={[1.32, 0.11, 0.01]} /><meshBasicMaterial color="#1d2228" /></mesh><mesh position={[-0.53, 0.3, 0.13]}><sphereGeometry args={[0.026, 12, 12]} /><meshBasicMaterial color="#db704e" /></mesh><mesh position={[-0.44, 0.3, 0.13]}><sphereGeometry args={[0.026, 12, 12]} /><meshBasicMaterial color="#d49d3d" /></mesh><mesh position={[-0.35, 0.3, 0.13]}><sphereGeometry args={[0.026, 12, 12]} /><meshBasicMaterial color="#7c9d70" /></mesh><Text position={[-0.5, 0.03, 0.13]} fontSize={0.2} color="#d9e3d6" anchorX="left" anchorY="middle">&gt;</Text><mesh ref={cursor} position={[-0.29, 0.03, 0.13]}><boxGeometry args={[0.045, 0.16, 0.01]} /><meshBasicMaterial color="#d9e3d6" /></mesh><mesh position={[-0.19, -0.23, 0.13]}><boxGeometry args={[0.62, 0.035, 0.01]} /><meshBasicMaterial color="#59616a" /></mesh><mesh position={[-0.28, -0.36, 0.13]}><boxGeometry args={[0.44, 0.035, 0.01]} /><meshBasicMaterial color="#3f464e" /></mesh></group>}      {project.shape === 'cv' && <group rotation={[0.08, -0.22, 0.05]}><RoundedBox args={[1.2, 1.55, 0.08]} position={[-0.12, -0.08, -0.14]} rotation={[0, 0, -0.08]} radius={0.05} smoothness={4}><meshStandardMaterial color="#e8e6e1" roughness={0.72} /></RoundedBox><RoundedBox args={[1.2, 1.55, 0.08]} position={[0.1, 0.06, -0.07]} rotation={[0, 0, 0.05]} radius={0.05} smoothness={4}><meshStandardMaterial color="#f0eee9" roughness={0.68} /></RoundedBox><RoundedBox args={[1.2, 1.55, 0.08]} radius={0.05} smoothness={4}><meshStandardMaterial color="#fffefb" roughness={0.62} /></RoundedBox><Text position={[0, 0.43, 0.061]} fontSize={0.3} fontWeight={700} color={project.color} anchorX="center" anchorY="middle">CV</Text>{CV_SCRIBBLES.map((curve, i) => <mesh key={i}><tubeGeometry args={[curve, 40, 0.012, 6, false]} /><meshBasicMaterial color="#252525" /></mesh>)}</group>}
     </group>
   </Float>
 }
 
-function CarouselScene({ index, select, onReady }) {
+function VeronitechModel({ active, color }) {
+  const group = useRef()
+  const { scene } = useGLTF('/models/mariners-markets/mm-model-reduced.glb')
+  const model = useMemo(() => {
+    const clone = scene.clone(true)
+    clone.traverse((child) => {
+      if (!child.isMesh || !child.material?.color) return
+      const material = child.material.clone()
+      material.color.set(color)
+      material.side = THREE.DoubleSide
+      child.material = material
+    })
+    return clone
+  }, [scene, color])
+
+  useFrame((state, delta) => {
+    if (!group.current) return
+    group.current.rotation.y += delta * (active ? 0.62 : 0.09)
+    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, active ? Math.sin(state.clock.elapsedTime * 0.7) * 0.05 : 0, 0.06)
+  })
+
+  return <Float speed={active ? 1.4 : 0.6} rotationIntensity={0.06} floatIntensity={active ? 0.24 : 0.08}>
+    <group ref={group} scale={active ? 1.89 : 1.44}>
+      <primitive object={model} rotation={[0, Math.PI / 2, 0]} />
+    </group>
+  </Float>
+}
+
+useGLTF.preload('/models/mariners-markets/mm-model-reduced.glb')
+function CarouselScene({ index, select, openProject, onReady }) {
   return <Canvas camera={{ position: [0, 0.2, 7.8], fov: 42 }} dpr={[1, 1.7]} gl={{ antialias: true }} onCreated={onReady}>
     <color attach="background" args={['#f7f6f2']} />
     <ambientLight intensity={1.15} />
@@ -55,7 +92,7 @@ function CarouselScene({ index, select, onReady }) {
           let offset = i - index
           if (offset > 2) offset -= PROJECTS.length
           if (offset < -2) offset += PROJECTS.length
-          return <group key={project.title} position={[offset * 2.65, 0, -Math.abs(offset) * 1.1]} rotation={[0, -offset * 0.18, 0]} onClick={() => select(i)}><PlaceholderObject project={project} active={offset === 0} /></group>
+          return <group key={project.title} position={[offset * 2.65, 0, -Math.abs(offset) * 1.1]} rotation={[0, -offset * 0.18, 0]} onClick={() => project.pdf ? openProject(i) : select(i)}>{project.shape === 'orbit' ? <VeronitechModel active={offset === 0} color={project.color} /> : <PlaceholderObject project={project} active={offset === 0} />}</group>
         })}
       </group>
       <ContactShadows position={[0, -1.48, 0]} opacity={0.25} scale={18} blur={3.8} far={8} color="#9b9388" />
@@ -78,13 +115,13 @@ function App() {
   return <><main>
     <header><a className="wordmark" aria-label="Kei home" href="#top"><svg viewBox="0 0 46 28" aria-hidden="true"><path d="M4 3v22M5 15 19 3M5 15l15 10M25 4v20M25 14h15M40 4v20" /></svg></a><button className="menu" aria-label="Open menu">•••</button></header>
     <section className="gallery" aria-label="Project carousel">
-      <div className="canvas-wrap"><CarouselScene index={index} select={(i) => { setIndex(i); sound() }} onReady={() => setReady(true)} /></div>
+      <div className="canvas-wrap"><CarouselScene index={index} select={(i) => { setIndex(i); sound() }} openProject={(i) => { setIndex(i); sound(); setOpen(true) }} onReady={() => setReady(true)} /></div>
       
-      <div className="project-info"><h1>{project.title}</h1><p>{project.note}</p><button className="learn" onClick={() => setOpen(true)}>Explore project <span>↗</span></button></div>
+      <div className="project-info"><h1>{project.title}</h1><p>{project.note}</p>{project.href ? <a className="learn" href={project.href} target="_blank" rel="noreferrer">Visit GitHub <span>↗</span></a> : <button className="learn" onClick={() => setOpen(true)}>{project.pdf ? 'View CV' : 'Explore project'} <span>↗</span></button>}</div>
       <div className="dots">{PROJECTS.map((p, i) => <button key={p.title} onClick={() => { setIndex(i); sound() }} className={i === index ? 'active' : ''} aria-label={`View ${p.title}`} />)}</div>
     </section>
     
-    {open && <div className="overlay" role="dialog" aria-modal="true" aria-label={`${project.title} details`} onMouseDown={() => setOpen(false)}><article onMouseDown={e => e.stopPropagation()}><button className="close" onClick={() => setOpen(false)}>Close ×</button><span className="eyebrow">{project.type} · {project.year}</span><h2>{project.title}</h2><p>{project.note} This project page is ready for your full case study, imagery, and links.</p>{project.href ? <a className="visit" href={project.href} target="_blank" rel="noreferrer">Visit GitHub ↗</a> : <button className="visit" onClick={() => setOpen(false)}>Back to work</button>}</article></div>}
+    {open && <div className="overlay" role="dialog" aria-modal="true" aria-label={`${project.title} details`} onMouseDown={() => setOpen(false)}><article className={project.pdf ? 'cv-modal' : ''} onMouseDown={e => e.stopPropagation()}><>{project.pdf && <a className="cv-download" href={project.pdf} download aria-label="Download Kei CV">↓</a>}<button className="close" onClick={() => setOpen(false)}>Close ×</button></>{project.pdf ? <><h2>{project.title}</h2><img className="cv-preview" src={project.preview} alt="Kei CV" /></> : <><h2>{project.title}</h2><p>{project.details || `${project.note} This project page is ready for your full case study, imagery, and links.`}{project.website && <> <a href={project.website} target="_blank" rel="noreferrer">veronitech.co</a></>}</p>{project.href && <a className="visit" href={project.href} target="_blank" rel="noreferrer">Visit GitHub ↗</a>}</>}</article></div>}
   </main>{!ready && <div className="loader" role="status" aria-live="polite"><div className="loader-mark">K</div><span>Loading selected work</span></div>}</>
 }
 
