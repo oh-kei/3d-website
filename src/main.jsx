@@ -1,8 +1,9 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, useLoader } from '@react-three/fiber'
 import { ContactShadows, Environment, Float, RoundedBox, Text, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import './styles.css'
 
 const CV_SCRIBBLES = [
@@ -13,25 +14,69 @@ const CV_SCRIBBLES = [
   [[-0.4, -0.56], [-0.29, -0.51], [-0.13, -0.59], [0.01, -0.52], [0.16, -0.58], [0.28, -0.51], [0.38, -0.56]],
 ].map((points) => new THREE.CatmullRomCurve3(points.map(([x, y]) => new THREE.Vector3(x, y, 0.061)), false, 'centripetal'))
 const PROJECTS = [
-  { title: 'Veronitech', type: 'Digital product', year: '2025', color: '#2A2864', note: 'Built a responsive landing page for a hospitality-tech startup, and improved the product dashboard experience.', details: 'As a Software Engineer at Veronitech from January to September 2026, I built the company’s responsive landing page from scratch with React, Vite, and Tailwind CSS, then deployed it on Netlify. I also redesigned and enhanced the dashboard, improving the interface, user experience, and its connection to backend systems.', website: 'https://veronitech.co', shape: 'orbit' },
-  { title: 'UniMatch', type: 'Platform design', year: '2025', color: '#8846B4', note: 'Co-developed a social app for Hong Kong university students with more than 2,500 active users.', details: ' Helepd develop a social networking app for university students in Hong Kong, growing it to more than 2,500 active users. I built the frontend with React Native, Expo, and TypeScript, and worked with a Supabase and PostgreSQL backend. The product also included email-verification flows and JWT authentication.', shape: 'tiles' },
-  { title: "Mariners’ Markets", type: 'E-commerce development', year: '2026', color: '#d49d3d', note: 'Built and deployed a full e-commerce platform for an international sailing-products distributor.', details: 'Contracted As a Web Developer from February to May 2026. I independently developed and deployed an e-commerce platform for an international sailing products distributor using Next.js, Medusa 2.0, and TypeScript. I built key storefront functionality including product customisation, bulk ordering, and Google OAuth authentication, and integrated Resend, Stripe, and MinIO on Railway.', website: 'https://marinersmarkets.com', websiteLabel: 'marinersmarkets.com', shape: 'market' },
-  { title: 'GitHub', type: 'Open source', year: 'Ongoing', color: '#2f343a', note: 'Find my projects here!', shape: 'github', href: 'https://github.com/oh-kei' },
-  { title: 'CV', type: 'Curriculum vitae', year: '2026', color: '#2A2864', note: 'An overview of my projects, work experienc, and technical skills.', shape: 'cv', pdf: '/cv/Kei%20CV.pdf', preview: '/cv/Kei-CV.png' },
+  { title: 'Veronitech', type: 'Digital product', year: '2025', color: '#2A2864', note: 'Built a responsive landing page for a hospitality-tech startup, and improved the product dashboard experience.', details: 'As a Software Engineer at Veronitech from January to September 2026, I built the company’s responsive landing page from scratch with React, Vite, and Tailwind CSS, then deployed it on Netlify. I also redesigned and enhanced the dashboard, improving the interface, user experience, and its connection to backend systems.', website: 'https://veronitech.co', shape: 'orbit', favicon: '/favicon/veronitech-favicon.webp' },
+  { title: 'UniMatch', type: 'Platform design', year: '2025', color: '#8846B4', note: 'Co-developed a social app for Hong Kong university students with more than 2,500 active users.', details: ' Helepd develop a social networking app for university students in Hong Kong, growing it to more than 2,500 active users. I built the frontend with React Native, Expo, and TypeScript, and worked with a Supabase and PostgreSQL backend. The product also included email-verification flows and JWT authentication.', shape: 'tiles', favicon: '/favicon/unimatch-favicon.png' },
+  { title: "Mariners’ Markets", type: 'E-commerce development', year: '2026', color: '#031834', note: 'Built and deployed a full e-commerce platform for an international sailing-products distributor.', details: 'Contracted As a Web Developer from February to May 2026. I independently developed and deployed an e-commerce platform for an international sailing products distributor using Next.js, Medusa 2.0, and TypeScript. I built key storefront functionality including product customisation, bulk ordering, and Google OAuth authentication, and integrated Resend, Stripe, and MinIO on Railway.', website: 'https://marinersmarkets.com', websiteLabel: 'marinersmarkets.com', shape: 'market', favicon: '/favicon/marinersmarkets-favicon.webp' },
+  { title: 'GitHub', type: 'Open source', year: 'Ongoing', color: '#2f343a', note: 'Find my projects here!', shape: 'github', href: 'https://github.com/oh-kei', favicon: '/favicon/github-favicon.png' },
+  { title: 'CV', type: 'Curriculum vitae', year: '2026', color: '#2A2864', note: 'An overview of my projects, work experienc, and technical skills.', shape: 'cv', pdf: '/cv/Kei%20CV.pdf', preview: '/cv/Kei-CV.png', favicon: '/favicon/inverted-default.png' },
 ]
+
+function useModelMotion(group, spinSpeed, active, hovered, rotation, activeScale, idleScale) {
+  const hoverStartedAt = useRef(null)
+  const wasActive = useRef(active)
+  const faceOnTarget = useRef(null)
+  useFrame((state, delta) => {
+    if (!group.current) return
+    if (active && !wasActive.current) {
+      const turn = Math.PI * 2
+      const current = group.current.rotation.y
+      const nextFaceOn = Math.ceil(current / turn) * turn
+      faceOnTarget.current = nextFaceOn - current < 0.7 ? nextFaceOn + turn : nextFaceOn
+      spinSpeed.current = 0
+    }
+    wasActive.current = active
+    if (hovered && active && hoverStartedAt.current === null) hoverStartedAt.current = state.clock.elapsedTime
+    if (!hovered || !active) hoverStartedAt.current = null
+    const hoverProgress = hoverStartedAt.current === null ? 0 : THREE.MathUtils.clamp((state.clock.elapsedTime - hoverStartedAt.current) / 1.5, 0, 1)
+    const targetSpeed = rotation ? (active ? (hovered ? THREE.MathUtils.lerp(1.8, 5.5, hoverProgress) : 0.42) : 0.07) : 0
+    if (faceOnTarget.current !== null) {
+      group.current.rotation.y = THREE.MathUtils.damp(group.current.rotation.y, faceOnTarget.current, 11, delta)
+      if (Math.abs(group.current.rotation.y - faceOnTarget.current) < 0.01) {
+        group.current.rotation.y = faceOnTarget.current
+        faceOnTarget.current = null
+      }
+    } else {
+      spinSpeed.current = THREE.MathUtils.damp(spinSpeed.current, targetSpeed, hovered ? 5 : 4.5, delta)
+      group.current.rotation.y += delta * spinSpeed.current
+    }
+    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, active ? Math.sin(state.clock.elapsedTime * 0.7) * 0.05 : 0, 0.06)
+    group.current.scale.setScalar(THREE.MathUtils.damp(group.current.scale.x, active ? activeScale : idleScale, 5, delta))
+  })
+}
+
+function useObjModel(objectPath, color) {
+  const source = useLoader(OBJLoader, objectPath)
+  return useMemo(() => {
+    const model = source.clone(true)
+    model.traverse((child) => {
+      if (!child.isMesh) return
+      child.material = new THREE.MeshStandardMaterial({ color, roughness: 0.34, metalness: 0.08 })
+    })
+    const bounds = new THREE.Box3().setFromObject(model)
+    const size = bounds.getSize(new THREE.Vector3())
+    const center = bounds.getCenter(new THREE.Vector3())
+    model.position.sub(center)
+    model.scale.setScalar(1.8 / Math.max(size.x, size.y, size.z))
+    return model
+  }, [source, color])
+}
 
 function PlaceholderObject({ project, active, hovered, movement, rotation }) {
   const group = useRef()
   const cursor = useRef()
   const spinSpeed = useRef(0)
-  useFrame((state, delta) => {
-    if (!group.current) return
-    const targetSpeed = rotation ? (active ? (hovered ? 1.45 : 0.42) : 0.07) : 0
-    spinSpeed.current = THREE.MathUtils.damp(spinSpeed.current, targetSpeed, hovered ? 8 : 4.5, delta)
-    group.current.rotation.y += delta * spinSpeed.current
-    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, active ? Math.sin(state.clock.elapsedTime * 0.7) * 0.05 : 0, 0.06)
-    const targetScale = active ? 1.08 : 0.82
-    group.current.scale.setScalar(THREE.MathUtils.damp(group.current.scale.x, targetScale, 5, delta))
+  useModelMotion(group, spinSpeed, active, hovered, rotation, 1.08, 0.82)
+  useFrame((state) => {
     if (cursor.current) cursor.current.visible = Math.floor(state.clock.elapsedTime * 2) % 2 === 0
   })
   const accent = new THREE.Color(project.color)
@@ -72,15 +117,7 @@ function VeronitechModel({ active, hovered, color, movement, rotation }) {
     return clone
   }, [scene, color])
 
-  useFrame((state, delta) => {
-    if (!group.current) return
-    const targetSpeed = rotation ? (active ? (hovered ? 1.45 : 0.42) : 0.07) : 0
-    spinSpeed.current = THREE.MathUtils.damp(spinSpeed.current, targetSpeed, hovered ? 8 : 4.5, delta)
-    group.current.rotation.y += delta * spinSpeed.current
-    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, active ? Math.sin(state.clock.elapsedTime * 0.7) * 0.05 : 0, 0.06)
-    const targetScale = active ? 1.89 : 1.44
-    group.current.scale.setScalar(THREE.MathUtils.damp(group.current.scale.x, targetScale, 5, delta))
-  })
+  useModelMotion(group, spinSpeed, active, hovered, rotation, 1.89, 1.44)
 
   return <Float speed={movement ? (active ? 1.4 : 0.6) : 0} rotationIntensity={movement ? 0.06 : 0} floatIntensity={movement ? (active ? 0.24 : 0.08) : 0}>
     <group ref={group} scale={1.44}>
@@ -92,37 +129,43 @@ function VeronitechModel({ active, hovered, color, movement, rotation }) {
 function UniMatchModel({ active, hovered, color, movement, rotation }) {
   const group = useRef()
   const spinSpeed = useRef(0)
-  const { scene } = useGLTF('/models/unimatch/unimatch-model.glb')
-const model = useMemo(() => {
-    const clone = scene.clone(true)
-    clone.traverse((child) => {
-      if (!child.isMesh || !child.material?.color) return
-      const material = child.material.clone()
-      material.color.set(color)
-      child.material = material
-    })
-    return clone
-  }, [scene, color])
-
-  useFrame((state, delta) => {
-    if (!group.current) return
-    const targetSpeed = rotation ? (active ? (hovered ? 1.45 : 0.42) : 0.07) : 0
-    spinSpeed.current = THREE.MathUtils.damp(spinSpeed.current, targetSpeed, hovered ? 8 : 4.5, delta)
-    group.current.rotation.y += delta * spinSpeed.current
-    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, active ? Math.sin(state.clock.elapsedTime * 0.7) * 0.05 : 0, 0.06)
-    const targetScale = active ? 1.24 : 0.94
-    group.current.scale.setScalar(THREE.MathUtils.damp(group.current.scale.x, targetScale, 5, delta))
-  })
+  const model = useObjModel('/models/unimatch/unimatch-model2.obj', color)
+  useModelMotion(group, spinSpeed, active, hovered, rotation, 1.24, 0.94)
 
   return <Float speed={movement ? (active ? 1.4 : 0.6) : 0} rotationIntensity={movement ? 0.06 : 0} floatIntensity={movement ? (active ? 0.24 : 0.08) : 0}>
     <group ref={group} scale={0.94}>
-      <primitive object={model} position={[0, -0.46, 0]} />
+      <primitive object={model} position={[0, -0.12, 0]} />
     </group>
   </Float>
 }
 
-useGLTF.preload('/models/unimatch/unimatch-model.glb')
+function MarinersMarketsModel({ active, hovered, color, movement, rotation }) {
+  const group = useRef()
+  const spinSpeed = useRef(0)
+  const { scene } = useGLTF('/models/marinersmarkets/marinersmarkets-model2-compressed.glb')
+  const model = useMemo(() => {
+    const clone = scene.clone(true)
+    clone.traverse((child) => {
+      if (!child.isMesh) return
+      child.material = new THREE.MeshStandardMaterial({ color, roughness: 0.34, metalness: 0.08 })
+    })
+    const bounds = new THREE.Box3().setFromObject(clone)
+    const size = bounds.getSize(new THREE.Vector3())
+    clone.position.sub(bounds.getCenter(new THREE.Vector3()))
+    clone.scale.setScalar(1.8 / Math.max(size.x, size.y, size.z))
+    return clone
+  }, [scene, color])
+  useModelMotion(group, spinSpeed, active, hovered, rotation, 1.2, 0.92)
+
+  return <Float speed={movement ? (active ? 1.4 : 0.6) : 0} rotationIntensity={movement ? 0.06 : 0} floatIntensity={movement ? (active ? 0.24 : 0.08) : 0}>
+    <group ref={group} scale={0.92}>
+      <primitive object={model} />
+    </group>
+  </Float>
+}
+
 useGLTF.preload('/models/veronitech/veronitech-reduced.glb')
+useGLTF.preload('/models/marinersmarkets/marinersmarkets-model2-compressed.glb')
 
 function CarouselItem({ project, offset, selected, hovered, select, setHovered, settings }) {
   const item = useRef()
@@ -132,20 +175,21 @@ function CarouselItem({ project, offset, selected, hovered, select, setHovered, 
       previousOffset.current = offset
       return
     }
-    item.current.position.set(offset * 2.65, 0, -Math.abs(offset) * 1.1)
-    item.current.rotation.y = -offset * 0.18
+    item.current.position.set(offset * 2.8, 0, -0.8 * offset * offset)
+    item.current.rotation.y = -offset * 0.34
     previousOffset.current = offset
   }, [offset])
   useFrame((_, delta) => {
     if (!item.current) return
-    item.current.position.x = THREE.MathUtils.damp(item.current.position.x, offset * 2.65, 2.9, delta)
-    item.current.position.z = THREE.MathUtils.damp(item.current.position.z, -Math.abs(offset) * 1.1, 2.9, delta)
-    item.current.rotation.y = THREE.MathUtils.damp(item.current.rotation.y, -offset * 0.18, 2.9, delta)
+    item.current.position.x = THREE.MathUtils.damp(item.current.position.x, offset * 2.8, 3.8, delta)
+    item.current.position.z = THREE.MathUtils.damp(item.current.position.z, -0.8 * offset * offset, 3.8, delta)
+    item.current.rotation.y = THREE.MathUtils.damp(item.current.rotation.y, -offset * 0.34, 3.8, delta)
+    item.current.scale.setScalar(THREE.MathUtils.damp(item.current.scale.x, 1, 3.8, delta))
   })
 
   const modelProps = { active: selected, hovered, color: project.color, movement: true, rotation: settings.rotation }
-  const model = project.shape === 'orbit' ? <VeronitechModel {...modelProps} /> : project.shape === 'tiles' ? <UniMatchModel {...modelProps} /> : <PlaceholderObject project={project} {...modelProps} />
-  return <group ref={item} onClick={() => select()} onPointerOver={e => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer' }} onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto' }}>
+  const model = project.shape === 'orbit' ? <VeronitechModel {...modelProps} /> : project.shape === 'tiles' ? <UniMatchModel {...modelProps} /> : project.shape === 'market' ? <MarinersMarketsModel {...modelProps} /> : <PlaceholderObject project={project} {...modelProps} />
+  return <group ref={item} onClick={() => select(selected)} onPointerOver={e => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer' }} onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto' }}>
     {model}
   </group>
 }
@@ -169,6 +213,7 @@ function CarouselScene({ index, select, onReady, settings }) {
     <color attach="background" args={[settings.colour]} />
     <ambientLight intensity={1.15} />
     <directionalLight position={[4, 5, 5]} intensity={2.4} />
+    <directionalLight position={[-3, 2, 6]} intensity={2.1} color="#dce9ff" />
     <pointLight position={[-4, -1, 3]} intensity={0.7} color="#f4d8c9" />
     <Suspense fallback={null}>
       <group position={[0, 0.78, 0]}>
@@ -176,7 +221,7 @@ function CarouselScene({ index, select, onReady, settings }) {
           let offset = i - index
           if (offset > 2) offset -= PROJECTS.length
           if (offset < -2) offset += PROJECTS.length
-          return <CarouselItem key={project.title} project={project} offset={offset} selected={offset === 0} hovered={hoveredIndex === i} setHovered={(isHovered) => setHoveredIndex(isHovered ? i : null)} select={() => select(i)} settings={settings} />
+          return <CarouselItem key={project.title} project={project} offset={offset} selected={offset === 0} hovered={hoveredIndex === i} setHovered={(isHovered) => setHoveredIndex(isHovered ? i : null)} select={(selected) => select(i, selected)} settings={settings} />
         })}
       </group>
       <ContactShadows position={[0, -1.48, 0]} opacity={0.42} scale={16} blur={2.5} far={7} color="#776f65" />
@@ -224,6 +269,12 @@ function App() {
     sound()
   }, [checkSwitchSpeed, sound])
   useEffect(() => { const key = e => { if (e.key === 'ArrowLeft') move(-1); if (e.key === 'ArrowRight') move(1); if (e.key === 'Enter') setOpen(true); if (e.key === 'Escape') setOpen(false) }; window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key) }, [move])
+  useEffect(() => {
+    const favicon = document.querySelector('link[rel="icon"]')
+    if (!favicon) return
+    favicon.href = project.favicon
+    favicon.type = project.favicon.endsWith('.png') ? 'image/png' : 'image/webp'
+  }, [project])
   useEffect(() => () => { if (speedCheck.current) window.clearTimeout(speedCheck.current) }, [])
   useEffect(() => {
     if (!settingsOpen) return
@@ -236,7 +287,7 @@ function App() {
   return <><main style={{ '--page-colour': settings.colour }}>
     <header><span className="wordmark" aria-label="Kei">k</span><div className="settings-wrap" ref={settingsWrap}><button className="menu" aria-label="Open settings" aria-expanded={settingsOpen} onClick={() => setSettingsOpen(v => !v)}>•••</button>{settingsOpen && <section className="settings" aria-label="Display settings"><div className="setting-row"><span>Sound</span><button className={settings.sound ? 'switch on' : 'switch'} aria-pressed={settings.sound} onClick={() => setSettings(s => ({ ...s, sound: !s.sound }))}><i /></button></div><div className="setting-row"><span>Colour</span><div className="swatches">{['#f7f6f2', '#edf2f5', '#f1ece5'].map((colour, i) => <button key={colour} className={settings.colour === colour ? 'swatch selected' : 'swatch'} style={{ background: colour }} aria-label={['Warm', 'Cool', 'Blush'][i]} onClick={() => setSettings(s => ({ ...s, colour }))} />)}</div></div><div className="setting-row"><span>Rotation</span><button className={settings.rotation ? 'switch on' : 'switch'} aria-pressed={!!settings.rotation} onClick={() => setSettings(s => ({ ...s, rotation: s.rotation ? 0 : 1 }))}><i /></button></div></section>}</div></header>
     <section className="gallery" aria-label="Project carousel">
-      <div className="canvas-wrap"><CarouselScene index={index} select={(i) => { setIndex(i); sound() }} onReady={finishLoading} settings={settings} /></div>
+      <div className="canvas-wrap"><CarouselScene index={index} select={(i, selected) => { if (selected) setOpen(true); else setIndex(i); sound() }} onReady={finishLoading} settings={settings} /></div>
       
       <div className="project-info">{fastSwitching ? <h1>Whoa... slow down!</h1> : <><h1>{project.title}</h1><p>{project.note}</p>{project.href ? <a className="learn" href={project.href} target="_blank" rel="noreferrer">Visit GitHub <span>↗</span></a> : <button className="learn" onClick={() => setOpen(true)}>{project.pdf ? 'View CV' : 'Explore project'} <span>↗</span></button>}</>}</div>
       <div className="dots">{PROJECTS.map((p, i) => <button key={p.title} onClick={() => { setIndex(i); sound() }} className={i === index ? 'active' : ''} aria-label={`View ${p.title}`} />)}</div>
