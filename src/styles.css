@@ -17,13 +17,21 @@ main.zoom-compact .overlay article{padding:44px}
 .project-info{bottom:12%}
 .project-info h1{margin-top:0}
 .nav, header p, footer{display:none}
-.loader{position:fixed;inset:0;z-index:20;background:#f7f6f2;display:grid;place-items:center;overflow:hidden;pointer-events:none}
-.loader-mark{width:52px;height:52px;display:grid;place-items:center;line-height:1;animation:loader-pulse 1s ease-in-out infinite}
-.loader-mark img{display:block;height:40px;width:auto}
+.loader{position:fixed;inset:0;z-index:20;background:#f7f6f2;overflow:hidden;pointer-events:none}
+.loader-mark{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:52px;height:52px;
+  background:url('/k-logo.svg') no-repeat center/contain;
+  animation:loader-pulse 1s ease-in-out infinite;
+}
 .loader.leaving{animation:loader-reveal .08s ease 1.05s forwards}
-.loader.leaving .loader-mark{transform-origin:47% 50%;animation:loader-fill 1.05s cubic-bezier(.76,0,.24,1) forwards}
-@keyframes loader-pulse{50%{transform:scale(1.08)}}
-@keyframes loader-fill{0%{transform:scale(1)}100%{transform:scale(calc(22 * max(100vw, 100vh) / 52px))}}
+/* Grow a background (re-rasterised, stays sharp) from a fixed centred anchor instead of a cached transform layer. */
+.loader.leaving .loader-mark{animation:loader-fill 1.05s cubic-bezier(.76,0,.24,1) forwards}
+@keyframes loader-pulse{50%{transform:translate(-50%,-50%) scale(1.08)}}
+@keyframes loader-fill{
+  from{width:52px;height:52px;transform:translate(-50%,-50%) scale(1)}
+  to{width:200vmax;height:200vmax;transform:translate(-50%,-50%) scale(1)}
+}
 @keyframes loader-reveal{to{opacity:0}}
 @media(max-width:600px){.project-info{bottom:9%}}
 .cv-modal{width:auto!important;height:auto!important;padding:0!important;background:transparent!important;box-shadow:none!important}

@@ -21,7 +21,7 @@ const PROJECTS = [
   { title: 'CV', type: 'Curriculum vitae', year: '2026', color: '#2A2864', note: 'An overview of my projects, work experienc, and technical skills.', shape: 'cv', pdf: '/cv/Kei%20CV.pdf', preview: '/cv/Kei-CV.png', favicon: '/favicon/inverted-default.png' },
 ]
 
-function useModelMotion(group, spinSpeed, active, hovered, rotation, activeScale, idleScale) {
+function useModelMotion(group, spinSpeed, active, hovered, rotation, activeScale, idleScale, boost = 0) {
   const hoverStartedAt = useRef(null)
   const wasActive = useRef(active)
   const faceOnTarget = useRef(null)
@@ -38,8 +38,9 @@ function useModelMotion(group, spinSpeed, active, hovered, rotation, activeScale
     if (hovered && active && hoverStartedAt.current === null) hoverStartedAt.current = state.clock.elapsedTime
     if (!hovered || !active) hoverStartedAt.current = null
     const hoverProgress = hoverStartedAt.current === null ? 0 : THREE.MathUtils.clamp((state.clock.elapsedTime - hoverStartedAt.current) / 1.5, 0, 1)
-    // `hovered` doubles as the desktop pointer-hover and the mobile "spun repeatedly" boost.
-    const targetSpeed = rotation ? (active ? (hovered ? THREE.MathUtils.lerp(1.8, 5.5, hoverProgress) : 0.42) : 0.07) : 0
+    // `hovered` = desktop pointer-hover; `boost` = signed mobile swipe impulse (magnitude = speed).
+    const hoverSpeed = active ? (hovered ? THREE.MathUtils.lerp(1.8, 5.5, hoverProgress) : 0.42) : 0.07
+    const targetSpeed = rotation ? (boost ? boost : hoverSpeed) : 0
     if (faceOnTarget.current !== null) {
       group.current.rotation.y = THREE.MathUtils.damp(group.current.rotation.y, faceOnTarget.current, 11, delta)
       if (Math.abs(group.current.rotation.y - faceOnTarget.current) < 0.01) {
@@ -47,7 +48,7 @@ function useModelMotion(group, spinSpeed, active, hovered, rotation, activeScale
         faceOnTarget.current = null
       }
     } else {
-      spinSpeed.current = THREE.MathUtils.damp(spinSpeed.current, targetSpeed, hovered ? 5 : 4.5, delta)
+      spinSpeed.current = THREE.MathUtils.damp(spinSpeed.current, targetSpeed, boost ? 8 : hovered ? 5 : 4.5, delta)
       group.current.rotation.y += delta * spinSpeed.current
     }
     group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, active ? Math.sin(state.clock.elapsedTime * 0.7) * 0.05 : 0, 0.06)
@@ -72,11 +73,11 @@ function useObjModel(objectPath, color) {
   }, [source, color])
 }
 
-function PlaceholderObject({ project, active, hovered, movement, rotation }) {
+function PlaceholderObject({ project, active, hovered, boost, movement, rotation }) {
   const group = useRef()
   const cursor = useRef()
   const spinSpeed = useRef(0)
-  useModelMotion(group, spinSpeed, active, hovered, rotation, 1.08, 0.82)
+  useModelMotion(group, spinSpeed, active, hovered, rotation, 1.08, 0.82, boost)
   useFrame((state) => {
     if (cursor.current) cursor.current.visible = Math.floor(state.clock.elapsedTime * 2) % 2 === 0
   })
@@ -102,7 +103,7 @@ function PlaceholderObject({ project, active, hovered, movement, rotation }) {
   </Float>
 }
 
-function VeronitechModel({ active, hovered, color, movement, rotation }) {
+function VeronitechModel({ active, hovered, boost, color, movement, rotation }) {
   const group = useRef()
   const spinSpeed = useRef(0)
   const { scene } = useGLTF('/models/veronitech/veronitech-reduced.glb')
@@ -118,7 +119,7 @@ function VeronitechModel({ active, hovered, color, movement, rotation }) {
     return clone
   }, [scene, color])
 
-  useModelMotion(group, spinSpeed, active, hovered, rotation, 1.89, 1.44)
+  useModelMotion(group, spinSpeed, active, hovered, rotation, 1.89, 1.44, boost)
 
   return <Float speed={movement ? (active ? 1.4 : 0.6) : 0} rotationIntensity={movement ? 0.06 : 0} floatIntensity={movement ? (active ? 0.24 : 0.08) : 0}>
     <group ref={group} scale={1.44}>
@@ -127,11 +128,11 @@ function VeronitechModel({ active, hovered, color, movement, rotation }) {
   </Float>
 }
 
-function UniMatchModel({ active, hovered, color, movement, rotation }) {
+function UniMatchModel({ active, hovered, boost, color, movement, rotation }) {
   const group = useRef()
   const spinSpeed = useRef(0)
   const model = useObjModel('/models/unimatch/unimatch-model2.obj', color)
-  useModelMotion(group, spinSpeed, active, hovered, rotation, 1.13, 0.86)
+  useModelMotion(group, spinSpeed, active, hovered, rotation, 1.13, 0.86, boost)
 
   return <Float speed={movement ? (active ? 1.4 : 0.6) : 0} rotationIntensity={movement ? 0.06 : 0} floatIntensity={movement ? (active ? 0.24 : 0.08) : 0}>
     <group ref={group} scale={0.86}>
@@ -140,7 +141,7 @@ function UniMatchModel({ active, hovered, color, movement, rotation }) {
   </Float>
 }
 
-function MarinersMarketsModel({ active, hovered, color, movement, rotation }) {
+function MarinersMarketsModel({ active, hovered, boost, color, movement, rotation }) {
   const group = useRef()
   const spinSpeed = useRef(0)
   const { scene } = useGLTF('/models/marinersmarkets/marinersmarkets-model2-compressed.glb')
@@ -156,7 +157,7 @@ function MarinersMarketsModel({ active, hovered, color, movement, rotation }) {
     clone.scale.setScalar(1.8 / Math.max(size.x, size.y, size.z))
     return clone
   }, [scene, color])
-  useModelMotion(group, spinSpeed, active, hovered, rotation, 1.2, 0.92)
+  useModelMotion(group, spinSpeed, active, hovered, rotation, 1.2, 0.92, boost)
 
   return <Float speed={movement ? (active ? 1.4 : 0.6) : 0} rotationIntensity={movement ? 0.06 : 0} floatIntensity={movement ? (active ? 0.24 : 0.08) : 0}>
     <group ref={group} scale={0.92}>
@@ -190,7 +191,7 @@ function CarouselItem({ project, offset, selected, hovered, boosted, onIconPoint
     item.current.scale.setScalar(THREE.MathUtils.damp(item.current.scale.x, 1, 3.8, delta))
   })
 
-  const modelProps = { active: selected, hovered: hovered || (selected && boosted), color: project.color, movement: true, rotation: settings.rotation }
+  const modelProps = { active: selected, hovered: !!hovered, boost: selected ? boosted : 0, color: project.color, movement: true, rotation: settings.rotation }
   const model = project.shape === 'orbit' ? <VeronitechModel {...modelProps} /> : project.shape === 'tiles' ? <UniMatchModel {...modelProps} /> : project.shape === 'market' ? <MarinersMarketsModel {...modelProps} /> : <PlaceholderObject project={project} {...modelProps} />
   return <group ref={item} onClick={() => select(selected)} onPointerDown={() => onIconPointerDown?.()} onPointerOver={e => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer' }} onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto' }}>
     {model}
@@ -245,7 +246,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [fastSwitching, setFastSwitching] = useState(false)
   const [settings, setSettings] = useState({ sound: true, colour: '#f7f6f2', rotation: 1 })
-  const [spinBoost, setSpinBoost] = useState(false)
+  const [spinBoost, setSpinBoost] = useState(0)
   const [zoomCompact, setZoomCompact] = useState(false)
 
   const audio = useRef(null)
@@ -308,38 +309,37 @@ function App() {
     setIndex(i => (i + step + PROJECTS.length) % PROJECTS.length)
     sound()
   }, [checkSwitchSpeed, sound])
-  // Each swipe on the active icon spins it faster; the boost eases off shortly after the last swipe.
-  const spinUp = useCallback(() => {
-    setSpinBoost(true)
+  // A swipe on the active icon spins it: distance sets the magnitude, direction sets the sign.
+  const spinUp = useCallback((impulse) => {
+    const magnitude = THREE.MathUtils.clamp(Math.abs(impulse), 0.6, 9)
+    setSpinBoost(Math.sign(impulse || 1) * magnitude)
     if (boostTimeout.current) window.clearTimeout(boostTimeout.current)
-    boostTimeout.current = window.setTimeout(() => setSpinBoost(false), 1200)
+    boostTimeout.current = window.setTimeout(() => setSpinBoost(0), 1000)
   }, [])
   useEffect(() => { const key = e => { if (e.key === 'ArrowLeft') move(-1); if (e.key === 'ArrowRight') move(1); if (e.key === 'Enter') setOpen(true); if (e.key === 'Escape') setOpen(false) }; window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key) }, [move])
   // Touch gestures:
-  //  · swipe outside an icon → navigate between projects
-  //  · tap an icon          → open it (handled by the icon's own click)
-  //  · swipe on an icon     → spin it faster (each swipe adds speed)
+  //  · tap an icon        → open it (handled by the icon's own click)
+  //  · swipe across icon  → spin it; distance = speed, direction = spin direction
+  //  · tap outside icon   → navigate (left half back, right half forward)
+  //  · swipe outside icon → does nothing
   useEffect(() => {
     const node = galleryWrap.current
     if (!node) return
     const onTouchStart = (event) => {
       const t = event.touches[0]
-      touch.current = { x: t.clientX, y: t.clientY, startX: t.clientX, startY: t.clientY, time: performance.now(), active: true, handled: false, onIcon: iconTouch.current }
+      // Touches that begin on a control (Explore button, links, dots, header) shouldn't navigate.
+      const onControl = !!event.target?.closest?.('button, a, .settings, .dots')
+      touch.current = { x: t.clientX, y: t.clientY, startX: t.clientX, startY: t.clientY, time: performance.now(), active: true, handled: onControl, onIcon: iconTouch.current && !onControl }
     }
     const onTouchMove = (event) => {
-      if (!touch.current.active || touch.current.handled) return
+      if (!touch.current.active) return
       const t = event.touches[0]
       const dx = t.clientX - touch.current.startX
       const dy = t.clientY - touch.current.startY
-      if (touch.current.onIcon) {
-        // Any deliberate drag on the icon spins it, in any direction.
-        if (Math.hypot(dx, dy) > 24) {
-          touch.current.handled = true
-          spinUp(dx < 0 ? -1 : 1)
-        }
-      } else if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      if (touch.current.onIcon && Math.abs(dx) > 16 && Math.abs(dx) > Math.abs(dy)) {
+        // Swiping across the icon nudges its spin proportionally to how far you dragged.
         touch.current.handled = true
-        move(dx < 0 ? 1 : -1)
+        spinUp(dx * 0.06)
       }
     }
     const onTouchEnd = (event) => {
@@ -348,7 +348,7 @@ function App() {
       const handled = touch.current.handled
       touch.current.active = false
       iconTouch.current = false
-      // A plain tap outside an icon navigates: left half steps back, right half steps forward.
+      // Only a plain tap (no drag) outside an icon navigates.
       if (!handled && !wasOnIcon) {
         const t = event.changedTouches?.[0]
         const x = t ? t.clientX : touch.current.startX
@@ -407,7 +407,7 @@ function App() {
       <div className="dots">{PROJECTS.map((p, i) => <button key={p.title} onClick={() => { setIndex(i); sound() }} className={i === index ? 'active' : ''} aria-label={`View ${p.title}`} />)}</div>
     </section>
     {open && <div className="overlay" role="dialog" aria-modal="true" aria-label={`${project.title} details`} onMouseDown={() => setOpen(false)}><article className={project.pdf ? 'cv-modal' : ''} onMouseDown={e => e.stopPropagation()}><>{project.pdf && <a className="cv-download" href={project.pdf} download aria-label="Download Kei CV">↓</a>}<button className="close" onClick={() => setOpen(false)}>Close ×</button></>{project.pdf ? <><h2>{project.title}</h2><img className="cv-preview" src={project.preview} alt="Kei CV" /></> : <><h2>{project.title}</h2><p>{project.details || `${project.note} This project page is ready for your full case study, imagery, and links.`}{project.website && <> <a href={project.website} target="_blank" rel="noreferrer">{project.websiteLabel || 'veronitech.co'}</a></>}</p>{project.href && <a className="visit" href={project.href} target="_blank" rel="noreferrer">Visit GitHub ↗</a>}</>}</article></div>}
-  </main>{!hideLoader && <div className={sceneReady ? 'loader leaving' : 'loader'} style={{ background: settings.colour }} role="status" aria-live="polite"><div className="loader-mark"><img src="/k-logo.svg" alt="Kei" /></div></div>}</>
+  </main>{!hideLoader && <div className={sceneReady ? 'loader leaving' : 'loader'} style={{ background: settings.colour }} role="status" aria-live="polite"><div className="loader-mark" aria-label="Kei" /></div>}</>
 }
 
 createRoot(document.getElementById('root')).render(<App />)
