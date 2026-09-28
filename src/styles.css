@@ -41,7 +41,7 @@ main.zoom-compact .overlay article{padding:44px}
 .cv-modal h2{display:none}
 .cv-modal .close{right:10px;top:10px;width:28px;height:28px;padding:0;border-radius:50%;background:#f7f6f2e8;box-shadow:0 2px 10px #17171622;font-size:0;z-index:1}
 .cv-modal .close:after{content:'×';font-size:20px;line-height:28px}
-.cv-preview{display:block;max-width:92vw;max-height:90vh;width:auto;height:auto;background:#fff;box-shadow:0 24px 70px #3e3a3360}
+.cv-preview{display:block;width:auto;height:auto;max-width:92vw;max-height:90vh;border:0;background:transparent;box-shadow:0 24px 70px #3e3a3355}
 @media(max-width:600px){.cv-preview{max-width:94vw;max-height:88vh}}
 .learn{text-decoration:none;display:inline-block}
 
@@ -70,7 +70,7 @@ main.zoom-compact .overlay article{padding:44px}
    Grid: top-left title + Brief/Problem, top-right media, bottom Insight/Outcome.
    ========================================================================== */
 .case-overlay{padding:0}
-.overlay article.case-modal{position:relative;width:80vw;height:80vh;height:80dvh;background:#f7f6f2;border-radius:24px;padding:clamp(28px,3vw,54px);box-shadow:0 30px 90px #1d1c182e;animation:rise .3s ease;overflow:hidden;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);grid-template-rows:auto auto 1fr;gap:clamp(20px,2.4vw,40px) clamp(24px,3.4vw,64px)}
+.overlay article.case-modal{position:relative;width:80vw;height:80vh;height:80dvh;background:#f7f6f2;border-radius:24px;padding:clamp(28px,3vw,54px);padding-bottom:clamp(48px,5vw,84px);box-shadow:0 30px 90px #1d1c182e;animation:rise .3s ease;overflow:auto;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);grid-template-rows:auto auto 1fr;gap:clamp(20px,2.4vw,40px) clamp(24px,3.4vw,64px)}
 .case-modal .close{position:absolute;right:clamp(18px,2vw,26px);top:clamp(12px,1.6vw,20px);padding:0;font-size:38px;font-weight:300;line-height:1;letter-spacing:0;text-transform:none;color:#9a948a;transition:color .2s;z-index:3}
 .case-modal .close:hover{color:#171716}
 
@@ -82,8 +82,8 @@ main.zoom-compact .overlay article{padding:44px}
 .case-media{grid-column:2;grid-row:1;display:flex;align-items:flex-start;justify-content:flex-end;padding:clamp(16px,3vw,44px) clamp(0px,2vw,36px) 0 0}
 /* Breakline spanning both columns, with Problem/Outcome a little below it. */
 .case-divider{grid-column:1 / -1;grid-row:2;border:0;border-top:1px solid #e3ded4;margin:0;align-self:center}
-.case-problem{grid-column:1;grid-row:3;align-self:start;margin-top:clamp(14px,2vw,28px)}
-.case-outcome{grid-column:2;grid-row:3;align-self:start;margin-top:clamp(14px,2vw,28px)}
+.case-problem{grid-column:1;grid-row:3;align-self:start;margin-top:0}
+.case-outcome{grid-column:2;grid-row:3;align-self:start;margin-top:0}
 
 .case-intro h2{font-family:'Playfair Display',Georgia,serif;font-size:clamp(28px,3vw,46px);font-weight:500;line-height:1.04;letter-spacing:-.045em;margin:0}
 .case-intro .visit{margin:2px 0 0}
@@ -117,25 +117,25 @@ video.media-el{cursor:pointer}
    balloon with the browser scale. Rows collapse to `auto` so content sizes
    itself instead of one row greedily filling the height. */
 @media(max-width:900px){
-  .overlay article.case-modal{width:92vw;height:90vh;height:90dvh;grid-template-columns:1fr;grid-template-rows:auto;gap:0;padding:24px 20px;overflow:auto;display:block}
+  .overlay article.case-modal{width:92vw;height:90vh;height:90dvh;grid-template-columns:1fr;grid-template-rows:auto;gap:0;padding:24px 20px;padding-bottom:56px;overflow:auto;display:block}
   .case-intro,.case-media,.case-problem,.case-outcome,.case-divider{grid-column:auto;grid-row:auto}
   .case-intro-body{margin-top:14px}
   .case-media{margin-top:20px;justify-content:flex-start;padding:0}
   .case-divider{margin:24px 0 0}
-  .case-problem{margin-top:20px}
-  .case-outcome{margin-top:20px}
+  .case-problem{margin-top:6px}
+  .case-outcome{margin-top:6px}
   .case-intro h2{font-size:26px}
   .case-block p{font-size:12.5px}
   .case-media .media-gallery{max-width:100%;max-height:42vh}
   .media-el{max-height:42vh;object-fit:contain;margin:0 auto}
 }
-main.zoom-mobile .overlay article.case-modal{width:92vw;height:90vh;height:90dvh;grid-template-columns:1fr;grid-template-rows:auto;gap:0;padding:24px 20px;overflow:auto;display:block}
+main.zoom-mobile .overlay article.case-modal{width:92vw;height:90vh;height:90dvh;grid-template-columns:1fr;grid-template-rows:auto;gap:0;padding:24px 20px;padding-bottom:56px;overflow:auto;display:block}
 main.zoom-mobile .case-intro,main.zoom-mobile .case-media,main.zoom-mobile .case-problem,main.zoom-mobile .case-outcome,main.zoom-mobile .case-divider{grid-column:auto;grid-row:auto}
 main.zoom-mobile .case-intro-body{margin-top:14px}
 main.zoom-mobile .case-media{margin-top:20px;justify-content:flex-start;padding:0}
 main.zoom-mobile .case-divider{margin:24px 0 0}
-main.zoom-mobile .case-problem{margin-top:20px}
-main.zoom-mobile .case-outcome{margin-top:20px}
+main.zoom-mobile .case-problem{margin-top:6px}
+main.zoom-mobile .case-outcome{margin-top:6px}
 main.zoom-mobile .case-intro h2{font-size:26px}
 main.zoom-mobile .case-block p{font-size:12.5px}
 main.zoom-mobile .case-media .media-gallery{max-width:100%;max-height:42vh}

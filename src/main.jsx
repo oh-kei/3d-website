@@ -57,7 +57,29 @@ const CV_SCRIBBLES = [
   [[-0.4, -0.56], [-0.29, -0.51], [-0.13, -0.59], [0.01, -0.52], [0.16, -0.58], [0.28, -0.51], [0.38, -0.56]],
 ].map((points) => new THREE.CatmullRomCurve3(points.map(([x, y]) => new THREE.Vector3(x, y, 0.061)), false, 'centripetal'))
 const PROJECTS = [
-  { title: 'Veronitech', type: 'Digital product', year: '2025', color: '#2A2864', note: 'Built a responsive landing page for a hospitality-tech startup, and improved the product dashboard experience.', details: 'As a Software Engineer at Veronitech from January to September 2026, I built the company’s responsive landing page from scratch with React, Vite, and Tailwind CSS, then deployed it on Netlify. I also redesigned and enhanced the dashboard, improving the interface, user experience, and its connection to backend systems.', website: 'https://veronitech.co', shape: 'orbit', favicon: '/favicon/veronitech-favicon.png' },
+  {
+    title: 'Veronitech',
+    type: 'Digital product',
+    year: '2025',
+    color: '#2A2864',
+    note: 'Built a responsive landing page for a hospitality-tech startup, and improved the product dashboard experience.',
+    details: 'As a Software Engineer at Veronitech from January to September 2026, I built the company’s responsive landing page from scratch with React, Vite, and Tailwind CSS, then deployed it on Netlify. I also redesigned and enhanced the dashboard, improving the interface, user experience, and its connection to backend systems.',
+    website: 'https://veronitech.co',
+    websiteLabel: 'veronitech.co',
+    shape: 'orbit',
+    favicon: '/favicon/veronitech-favicon.png',
+    role: ' Software Engineer - Veronitech',
+    media: [
+      { type: 'video', src: '/project-images/veronitech-animation.mp4' },
+      { type: 'image', src: '/project-images/veronitech-dashboard.webp', alt: 'Veronitech product dashboard' },
+      { type: 'image', src: '/project-images/veronitech-tasks.webp', alt: 'Veronitech task management' },
+    ],
+    brief: {
+      brief: 'Veronitech - a hospitality-tech startup - needed a responsive landing page and a clearer, better-connected product dashboard.',
+      problem: 'The company had no public-facing landing page, and the existing dashboard was hard to navigate: the interface, the user experience, and its connection to backend systems all needed work.',
+      outcome: 'I built the responsive landing page from scratch with React, Vite and Tailwind CSS and deployed it on Netlify, then redesigned and enhanced the dashboard - improving the interface, the user experience, and how it connected to backend systems.',
+    },
+  },
   {
     title: 'UniMatch',
     type: 'Platform design',
@@ -79,7 +101,7 @@ const PROJECTS = [
       outcome: 'I co-developed the app from the ground up, building the frontend with React Native, Expo and TypeScript against a Supabase and PostgreSQL backend, and shipping email-verification flows and JWT authentication. UniMatch grew to more than 2,500 active users.',
     },
   },
-  { title: 'CV', type: 'Curriculum vitae', year: '2026', color: '#2A2864', note: 'An overview of my projects, work experience, and technical skills.', shape: 'cv', pdf: '/cv/Kei%20CV.pdf', preview: '/cv/Kei-CV.png', favicon: '/favicon/inverted-default.png' },
+  { title: 'CV', type: 'Curriculum vitae', year: '2026', color: '#2A2864', note: 'An overview of my projects, work experience, and technical skills.', shape: 'cv', pdf: '/cv/Kei%20CV.pdf', preview: '/cv/KeiCV.png', favicon: '/favicon/inverted-default.png' },
   {
     title: "Mariner's Markets",
     type: 'E-commerce development',
@@ -514,13 +536,19 @@ function App() {
   // that also run on click check this first.
   const clickFromTouch = useCallback(() => performance.now() - lastTouchAction.current < 500, [])
   // A swipe on the active icon spins it: distance sets the magnitude, direction sets the sign.
+  // Repeated swipes in the same direction accumulate, so the spin keeps getting faster up to a top speed.
+  const SPIN_TOP_SPEED = 30
   const spinUp = useCallback((impulse) => {
-    // Gentler per-swipe spin, but a higher top speed for a fast flick.
-    const magnitude = THREE.MathUtils.clamp(Math.abs(impulse), 0.4, 14)
-    setSpinBoost(Math.sign(impulse || 1) * magnitude)
+    const magnitude = THREE.MathUtils.clamp(Math.abs(impulse), 0.6, SPIN_TOP_SPEED)
+    const sign = Math.sign(impulse || 1)
+    setSpinBoost((prev) => {
+      // Same direction → add to the existing speed (accumulate); opposite direction → start fresh.
+      const accumulated = Math.sign(prev) === sign ? Math.abs(prev) + magnitude : magnitude
+      return sign * Math.min(accumulated, SPIN_TOP_SPEED)
+    })
     setSpunOnce(true)
     if (boostTimeout.current) window.clearTimeout(boostTimeout.current)
-    boostTimeout.current = window.setTimeout(() => setSpinBoost(0), 1000)
+    boostTimeout.current = window.setTimeout(() => setSpinBoost(0), 1200)
   }, [])
   useEffect(() => { const key = e => { if (e.key === 'ArrowLeft') move(-1); if (e.key === 'ArrowRight') move(1); if (e.key === 'Enter') setOpen(true); if (e.key === 'Escape') setOpen(false) }; window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key) }, [move])
   // Touch gestures:
