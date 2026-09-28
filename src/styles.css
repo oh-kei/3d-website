@@ -46,3 +46,18 @@ main.zoom-compact .overlay article{padding:44px}
 
 .cv-download{position:absolute;right:46px;top:10px;width:28px;height:28px;display:grid;place-items:center;border-radius:50%;background:#f7f6f2e8;box-shadow:0 2px 10px #17171622;color:#171716;text-decoration:none;font-size:17px;line-height:1;z-index:1}
 .cv-download:hover{background:#171716;color:#fff}
+
+/* Mobile-only navigation hint: small arrows that fade out after the first move. */
+.mobile-nav{display:none}
+.mobile-arrow{position:absolute;top:44%;transform:translateY(-50%);z-index:3;width:40px;height:40px;display:grid;place-items:center;padding:0 0 4px;border:1px solid #d2cec5;border-radius:50%;background:#f7f6f2cc;font-size:22px;line-height:1;color:#3a3831;animation:nav-blink 2s ease-in-out infinite}
+.mobile-arrow.prev{left:16px}
+.mobile-arrow.next{right:16px}
+@keyframes nav-blink{0%,100%{opacity:.45}50%{opacity:1}}
+
+/* Mobile-only spin hint above the icons, shown until the first spin. */
+.spin-hint{display:none}
+@media(max-width:600px){
+  .mobile-nav{display:block}
+  .spin-hint{display:grid;place-items:center;position:absolute;top:54px;left:50%;transform:translateX(-50%);z-index:3;color:#9a948a;pointer-events:none;animation:nav-blink 2s ease-in-out infinite}
+}
+@media(max-width:600px) and (prefers-reduced-motion:reduce){.mobile-arrow,.spin-hint{animation:none;opacity:1}}

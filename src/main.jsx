@@ -14,11 +14,11 @@ const CV_SCRIBBLES = [
   [[-0.4, -0.56], [-0.29, -0.51], [-0.13, -0.59], [0.01, -0.52], [0.16, -0.58], [0.28, -0.51], [0.38, -0.56]],
 ].map((points) => new THREE.CatmullRomCurve3(points.map(([x, y]) => new THREE.Vector3(x, y, 0.061)), false, 'centripetal'))
 const PROJECTS = [
+  { title: 'CV', type: 'Curriculum vitae', year: '2026', color: '#2A2864', note: 'An overview of my projects, work experience, and technical skills.', shape: 'cv', pdf: '/cv/Kei%20CV.pdf', preview: '/cv/Kei-CV.png', favicon: '/favicon/inverted-default.png' },
   { title: 'Veronitech', type: 'Digital product', year: '2025', color: '#2A2864', note: 'Built a responsive landing page for a hospitality-tech startup, and improved the product dashboard experience.', details: 'As a Software Engineer at Veronitech from January to September 2026, I built the company’s responsive landing page from scratch with React, Vite, and Tailwind CSS, then deployed it on Netlify. I also redesigned and enhanced the dashboard, improving the interface, user experience, and its connection to backend systems.', website: 'https://veronitech.co', shape: 'orbit', favicon: '/favicon/veronitech-favicon.png' },
   { title: 'UniMatch', type: 'Platform design', year: '2025', color: '#8846B4', note: 'Co-developed a social app for Hong Kong university students with more than 2,500 active users.', details: ' Helped develop a social networking app for university students in Hong Kong, growing it to more than 2,500 active users. I built the frontend with React Native, Expo, and TypeScript, and worked with a Supabase and PostgreSQL backend. The product also included email-verification flows and JWT authentication.', website: 'https://unimatch.hk', websiteLabel: 'unimatch.hk', shape: 'tiles', favicon: '/favicon/unimatch-favicon.png' },
-  { title: "Mariner's Markets", type: 'E-commerce development', year: '2026', color: '#031834', note: 'Built and deployed a fully customised e-commerce platform from scratch for an international sailing-products distributor.', details: 'Contracted As a Web Developer from February to May 2026. I independently developed and deployed an e-commerce platform for an international sailing products distributor using Next.js, Medusa 2.0, and TypeScript. I built key storefront functionality including product customisation, bulk ordering, and Google OAuth authentication, and integrated Resend, Stripe, and MinIO on Railway.', website: 'https://marinersmarkets.com', websiteLabel: 'marinersmarkets.com', shape: 'market', favicon: '/favicon/marinersmarkets-favicon.webp' },
+  { title: "Mariner's Markets", type: 'E-commerce development', year: '2026', color: '#031834', modelColor: '#8bbeee', note: 'Built and deployed a fully customised e-commerce platform from scratch for an international sailing-products distributor.', details: 'Contracted As a Web Developer from February to May 2026. I independently developed and deployed an e-commerce platform for an international sailing products distributor using Next.js, Medusa 2.0, and TypeScript. I built key storefront functionality including product customisation, bulk ordering, and Google OAuth authentication, and integrated Resend, Stripe, and MinIO on Railway.', website: 'https://marinersmarkets.com', websiteLabel: 'marinersmarkets.com', shape: 'market', favicon: '/favicon/marinersmarkets-favicon.webp' },
   { title: 'GitHub', type: 'Open source', year: 'Ongoing', color: '#2f343a', note: 'Find my projects here!', shape: 'github', href: 'https://github.com/oh-kei', favicon: '/favicon/github-favicon.png' },
-  { title: 'CV', type: 'Curriculum vitae', year: '2026', color: '#2A2864', note: 'An overview of my projects, work experienc, and technical skills.', shape: 'cv', pdf: '/cv/Kei%20CV.pdf', preview: '/cv/Kei-CV.png', favicon: '/favicon/inverted-default.png' },
 ]
 
 function useModelMotion(group, spinSpeed, active, hovered, rotation, activeScale, idleScale, boost = 0) {
@@ -191,7 +191,7 @@ function CarouselItem({ project, offset, selected, hovered, boosted, onIconPoint
     item.current.scale.setScalar(THREE.MathUtils.damp(item.current.scale.x, 1, 3.8, delta))
   })
 
-  const modelProps = { active: selected, hovered: !!hovered, boost: selected ? boosted : 0, color: project.color, movement: true, rotation: settings.rotation }
+  const modelProps = { active: selected, hovered: !!hovered, boost: selected ? boosted : 0, color: project.modelColor ?? project.color, movement: true, rotation: settings.rotation }
   const model = project.shape === 'orbit' ? <VeronitechModel {...modelProps} /> : project.shape === 'tiles' ? <UniMatchModel {...modelProps} /> : project.shape === 'market' ? <MarinersMarketsModel {...modelProps} /> : <PlaceholderObject project={project} {...modelProps} />
   return <group ref={item} onClick={() => select(selected)} onPointerDown={() => onIconPointerDown?.()} onPointerOver={e => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer' }} onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto' }}>
     {model}
@@ -248,6 +248,8 @@ function App() {
   const [settings, setSettings] = useState({ sound: true, colour: '#f7f6f2', rotation: 1 })
   const [spinBoost, setSpinBoost] = useState(0)
   const [zoomCompact, setZoomCompact] = useState(false)
+  const [movedOnce, setMovedOnce] = useState(false)
+  const [spunOnce, setSpunOnce] = useState(false)
 
   const audio = useRef(null)
   const settingsWrap = useRef(null)
@@ -307,12 +309,14 @@ function App() {
     switchTimes.current.push(performance.now())
     checkSwitchSpeed()
     setIndex(i => (i + step + PROJECTS.length) % PROJECTS.length)
+    setMovedOnce(true)
     sound()
   }, [checkSwitchSpeed, sound])
   // A swipe on the active icon spins it: distance sets the magnitude, direction sets the sign.
   const spinUp = useCallback((impulse) => {
     const magnitude = THREE.MathUtils.clamp(Math.abs(impulse), 0.6, 9)
     setSpinBoost(Math.sign(impulse || 1) * magnitude)
+    setSpunOnce(true)
     if (boostTimeout.current) window.clearTimeout(boostTimeout.current)
     boostTimeout.current = window.setTimeout(() => setSpinBoost(0), 1000)
   }, [])
@@ -320,15 +324,14 @@ function App() {
   // Touch gestures:
   //  · tap an icon        → open it (handled by the icon's own click)
   //  · swipe across icon  → spin it; distance = speed, direction = spin direction
-  //  · tap outside icon   → navigate (left half back, right half forward)
-  //  · swipe outside icon → does nothing
+  //  · tap/swipe elsewhere→ does nothing (use the arrow buttons to navigate)
   useEffect(() => {
     const node = galleryWrap.current
     if (!node) return
     const onTouchStart = (event) => {
       const t = event.touches[0]
-      // Touches that begin on a control (Explore button, links, dots, header) shouldn't navigate.
-      const onControl = !!event.target?.closest?.('button, a, .settings, .dots')
+      // Touches that begin on a control (Explore button, links, dots, header, nav) shouldn't spin.
+      const onControl = !!event.target?.closest?.('button, a, .settings, .dots, .mobile-nav')
       touch.current = { x: t.clientX, y: t.clientY, startX: t.clientX, startY: t.clientY, time: performance.now(), active: true, handled: onControl, onIcon: iconTouch.current && !onControl }
     }
     const onTouchMove = (event) => {
@@ -342,18 +345,12 @@ function App() {
         spinUp(dx * 0.06)
       }
     }
-    const onTouchEnd = (event) => {
+    const onTouchEnd = () => {
       if (!touch.current.active) return
-      const wasOnIcon = touch.current.onIcon
-      const handled = touch.current.handled
       touch.current.active = false
+      touch.current.handled = false
+      touch.current.onIcon = false
       iconTouch.current = false
-      // Only a plain tap (no drag) outside an icon navigates.
-      if (!handled && !wasOnIcon) {
-        const t = event.changedTouches?.[0]
-        const x = t ? t.clientX : touch.current.startX
-        move(x < window.innerWidth / 2 ? -1 : 1)
-      }
     }
     node.addEventListener('touchstart', onTouchStart, { passive: true })
     node.addEventListener('touchmove', onTouchMove, { passive: true })
@@ -365,7 +362,7 @@ function App() {
       node.removeEventListener('touchend', onTouchEnd)
       node.removeEventListener('touchcancel', onTouchEnd)
     }
-  }, [move, spinUp])
+  }, [spinUp])
   // At ~200%+ browser zoom, add a class that shrinks type and controls so the layout stays usable.
   // Below 200% nothing changes. We read zoom from outerWidth/innerWidth (reliable across browsers).
   useEffect(() => {
@@ -405,6 +402,8 @@ function App() {
       <div className="canvas-wrap"><CarouselScene index={index} select={(i, selected) => { if (selected) setOpen(true); else setIndex(i); sound() }} onReady={finishLoading} settings={settings} boosted={spinBoost} onIconPointerDown={() => { iconTouch.current = true }} /></div>
       <div className="project-info">{fastSwitching ? <h1>Whoa... slow down!</h1> : <><h1>{project.title}</h1><p>{project.note}</p>{project.href ? <a className="learn" href={project.href} target="_blank" rel="noreferrer">Visit GitHub </a> : <button className="learn" onClick={() => setOpen(true)}>{project.pdf ? 'View CV' : 'Explore project'} </button>}</>}</div>
       <div className="dots">{PROJECTS.map((p, i) => <button key={p.title} onClick={() => { setIndex(i); sound() }} className={i === index ? 'active' : ''} aria-label={`View ${p.title}`} />)}</div>
+      {!movedOnce && <div className="mobile-nav" aria-hidden={movedOnce}><button className="mobile-arrow prev" aria-label="Previous project" onClick={() => move(-1)}>‹</button><button className="mobile-arrow next" aria-label="Next project" onClick={() => move(1)}>›</button></div>}
+      {!spunOnce && <div className="spin-hint" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><polyline points="21 3 21 9 15 9" /></svg></div>}
     </section>
     {open && <div className="overlay" role="dialog" aria-modal="true" aria-label={`${project.title} details`} onMouseDown={() => setOpen(false)}><article className={project.pdf ? 'cv-modal' : ''} onMouseDown={e => e.stopPropagation()}><>{project.pdf && <a className="cv-download" href={project.pdf} download aria-label="Download Kei CV">↓</a>}<button className="close" onClick={() => setOpen(false)}>Close ×</button></>{project.pdf ? <><h2>{project.title}</h2><img className="cv-preview" src={project.preview} alt="Kei CV" /></> : <><h2>{project.title}</h2><p>{project.details || `${project.note}`}{project.website && <> <a href={project.website} target="_blank" rel="noreferrer">{project.websiteLabel || 'veronitech.co'}</a></>}</p>{project.href && <a className="visit" href={project.href} target="_blank" rel="noreferrer">Visit GitHub ↗</a>}</>}</article></div>}
   </main>{!hideLoader && <div className={sceneReady ? 'loader leaving' : 'loader'} style={{ background: settings.colour }} role="status" aria-live="polite"><div className="loader-mark" aria-label="Kei" /></div>}</>
