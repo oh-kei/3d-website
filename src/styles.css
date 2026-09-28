@@ -49,10 +49,11 @@ main.zoom-compact .overlay article{padding:44px}
 
 /* Mobile-only navigation hint: small arrows that fade out after the first move. */
 .mobile-nav{display:none}
-.mobile-arrow{position:absolute;top:44%;transform:translateY(-50%);z-index:3;width:40px;height:40px;display:grid;place-items:center;padding:0 0 4px;border:1px solid #d2cec5;border-radius:50%;background:#f7f6f2cc;font-size:22px;line-height:1;color:#3a3831;animation:nav-blink 2s ease-in-out infinite}
-.mobile-arrow.prev{left:16px}
-.mobile-arrow.next{right:16px}
-@keyframes nav-blink{0%,100%{opacity:.45}50%{opacity:1}}
+.mobile-arrow{position:absolute;top:44%;transform:translateY(-50%);z-index:3;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;background:transparent;color:#3a3831;opacity:.55;transition:opacity .2s}
+.mobile-arrow:active{opacity:1}
+.mobile-arrow.prev{left:12px}
+.mobile-arrow.next{right:12px}
+@keyframes nav-blink{0%,100%{opacity:.4}50%{opacity:.85}}
 
 /* Mobile-only spin hint above the icons, shown until the first spin. */
 .spin-hint{display:none}

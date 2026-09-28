@@ -324,33 +324,43 @@ function App() {
   // Touch gestures:
   //  · tap an icon        → open it (handled by the icon's own click)
   //  · swipe across icon  → spin it; distance = speed, direction = spin direction
-  //  · tap/swipe elsewhere→ does nothing (use the arrow buttons to navigate)
+  //  · tap left/right half (no swipe) → navigate back / forward
+  //  · swipe elsewhere    → does nothing
   useEffect(() => {
     const node = galleryWrap.current
     if (!node) return
     const onTouchStart = (event) => {
       const t = event.touches[0]
-      // Touches that begin on a control (Explore button, links, dots, header, nav) shouldn't spin.
-      const onControl = !!event.target?.closest?.('button, a, .settings, .dots, .mobile-nav')
-      touch.current = { x: t.clientX, y: t.clientY, startX: t.clientX, startY: t.clientY, time: performance.now(), active: true, handled: onControl, onIcon: iconTouch.current && !onControl }
+      // Touches that begin on any interactive/control element shouldn't navigate.
+      const onControl = !!event.target?.closest?.('button, a, .settings, .dots, .mobile-nav, .project-info, .learn, .visit, .cv-download')
+      touch.current = { x: t.clientX, y: t.clientY, startX: t.clientX, startY: t.clientY, time: performance.now(), active: true, handled: onControl, onIcon: iconTouch.current && !onControl, dragged: false }
     }
     const onTouchMove = (event) => {
       if (!touch.current.active) return
       const t = event.touches[0]
       const dx = t.clientX - touch.current.startX
       const dy = t.clientY - touch.current.startY
+      // Any meaningful drag counts as a swipe, so it won't be treated as a tap later.
+      if (Math.abs(dx) > 12 || Math.abs(dy) > 12) touch.current.dragged = true
       if (touch.current.onIcon && Math.abs(dx) > 16 && Math.abs(dx) > Math.abs(dy)) {
         // Swiping across the icon nudges its spin proportionally to how far you dragged.
         touch.current.handled = true
         spinUp(dx * 0.06)
       }
     }
-    const onTouchEnd = () => {
+    const onTouchEnd = (event) => {
       if (!touch.current.active) return
+      const wasOnIcon = touch.current.onIcon
+      const handled = touch.current.handled
+      const dragged = touch.current.dragged
       touch.current.active = false
-      touch.current.handled = false
-      touch.current.onIcon = false
       iconTouch.current = false
+      // Only a plain tap (no drag) outside an icon navigates: left half back, right half forward.
+      if (!handled && !dragged && !wasOnIcon) {
+        const t = event.changedTouches?.[0]
+        const x = t ? t.clientX : touch.current.startX
+        move(x < window.innerWidth / 2 ? -1 : 1)
+      }
     }
     node.addEventListener('touchstart', onTouchStart, { passive: true })
     node.addEventListener('touchmove', onTouchMove, { passive: true })
@@ -362,7 +372,7 @@ function App() {
       node.removeEventListener('touchend', onTouchEnd)
       node.removeEventListener('touchcancel', onTouchEnd)
     }
-  }, [spinUp])
+  }, [move, spinUp])
   // At ~200%+ browser zoom, add a class that shrinks type and controls so the layout stays usable.
   // Below 200% nothing changes. We read zoom from outerWidth/innerWidth (reliable across browsers).
   useEffect(() => {
@@ -402,7 +412,7 @@ function App() {
       <div className="canvas-wrap"><CarouselScene index={index} select={(i, selected) => { if (selected) setOpen(true); else setIndex(i); sound() }} onReady={finishLoading} settings={settings} boosted={spinBoost} onIconPointerDown={() => { iconTouch.current = true }} /></div>
       <div className="project-info">{fastSwitching ? <h1>Whoa... slow down!</h1> : <><h1>{project.title}</h1><p>{project.note}</p>{project.href ? <a className="learn" href={project.href} target="_blank" rel="noreferrer">Visit GitHub </a> : <button className="learn" onClick={() => setOpen(true)}>{project.pdf ? 'View CV' : 'Explore project'} </button>}</>}</div>
       <div className="dots">{PROJECTS.map((p, i) => <button key={p.title} onClick={() => { setIndex(i); sound() }} className={i === index ? 'active' : ''} aria-label={`View ${p.title}`} />)}</div>
-      {!movedOnce && <div className="mobile-nav" aria-hidden={movedOnce}><button className="mobile-arrow prev" aria-label="Previous project" onClick={() => move(-1)}>‹</button><button className="mobile-arrow next" aria-label="Next project" onClick={() => move(1)}>›</button></div>}
+      {!movedOnce && <div className="mobile-nav" aria-hidden={movedOnce}><button className="mobile-arrow prev" aria-label="Previous project" onClick={() => move(-1)}><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5 8 12l7 7" /></svg></button><button className="mobile-arrow next" aria-label="Next project" onClick={() => move(1)}><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg></button></div>}
       {!spunOnce && <div className="spin-hint" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><polyline points="21 3 21 9 15 9" /></svg></div>}
     </section>
     {open && <div className="overlay" role="dialog" aria-modal="true" aria-label={`${project.title} details`} onMouseDown={() => setOpen(false)}><article className={project.pdf ? 'cv-modal' : ''} onMouseDown={e => e.stopPropagation()}><>{project.pdf && <a className="cv-download" href={project.pdf} download aria-label="Download Kei CV">↓</a>}<button className="close" onClick={() => setOpen(false)}>Close ×</button></>{project.pdf ? <><h2>{project.title}</h2><img className="cv-preview" src={project.preview} alt="Kei CV" /></> : <><h2>{project.title}</h2><p>{project.details || `${project.note}`}{project.website && <> <a href={project.website} target="_blank" rel="noreferrer">{project.websiteLabel || 'veronitech.co'}</a></>}</p>{project.href && <a className="visit" href={project.href} target="_blank" rel="noreferrer">Visit GitHub ↗</a>}</>}</article></div>}
