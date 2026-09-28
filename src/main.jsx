@@ -6,6 +6,49 @@ import * as THREE from 'three'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import './styles.css'
 
+// ---------------------------------------------------------------------------
+// Global iOS/Safari audio unlocking
+// ---------------------------------------------------------------------------
+// iOS WebKit only lets you wake the AudioContext from the execution call stack
+// of a *trusted* user gesture. Creating/resuming it lazily inside the synth
+// call (which can run after a React state change, or from a gesture the
+// browser no longer treats as trusted) drops notes intermittently.
+//
+// So we create one shared context and unlock it once, globally, on the very
+// first real user interaction. After that the context stays running and the
+// synth can safely schedule oscillators from any call site.
+const AudioCtor = typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)
+const sharedAudio = { ctx: AudioCtor ? new AudioCtor() : null, resumePromise: null }
+
+function unlockAudio() {
+  const ctx = sharedAudio.ctx
+  if (!ctx) return Promise.resolve()
+  // Coalesce concurrent unlocks so rapid taps don't stack resume() calls.
+  if (ctx.state === 'running') return Promise.resolve()
+  if (!sharedAudio.resumePromise) {
+    sharedAudio.resumePromise = Promise.resolve(ctx.resume()).catch(() => {}).finally(() => {
+      sharedAudio.resumePromise = null
+    })
+  }
+  return sharedAudio.resumePromise
+}
+
+if (typeof window !== 'undefined' && sharedAudio.ctx) {
+  // Unlock on the first interaction of any kind, in capture phase so we run
+  // inside the trusted gesture frame before anything can stopPropagation().
+  const onFirstGesture = () => { unlockAudio() }
+  window.addEventListener('pointerdown', onFirstGesture, { passive: true, capture: true })
+  window.addEventListener('touchstart', onFirstGesture, { passive: true, capture: true })
+  window.addEventListener('keydown', onFirstGesture, { capture: true })
+  // Safari suspends the context when the page is backgrounded; re-unlock on
+  // the next interaction once we come back.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && sharedAudio.ctx?.state === 'suspended') {
+      unlockAudio()
+    }
+  })
+}
+
 const CV_SCRIBBLES = [
   [[-0.4, 0.12], [-0.29, 0.17], [-0.17, 0.08], [-0.04, 0.14], [0.09, 0.09], [0.23, 0.16], [0.39, 0.11]],
   [[-0.4, -0.05], [-0.32, -0.01], [-0.21, -0.08], [-0.07, -0.02], [0.05, -0.07], [0.2, 0], [0.36, -0.05]],
@@ -251,7 +294,6 @@ function App() {
   const [movedOnce, setMovedOnce] = useState(false)
   const [spunOnce, setSpunOnce] = useState(false)
 
-  const audio = useRef(null)
   const settingsWrap = useRef(null)
   const galleryWrap = useRef(null)
   const switchTimes = useRef([])
@@ -259,6 +301,11 @@ function App() {
   const touch = useRef({ x: 0, y: 0, startX: 0, startY: 0, time: 0, active: false, handled: false, onIcon: false })
   const iconTouch = useRef(false)
   const boostTimeout = useRef(null)
+  // Timestamp of the last nav triggered from a touch handler. iOS fires a
+  // synthesized `click` ~after touchend; if that click lands on a dot/icon it
+  // would navigate a second time, so we swallow clicks immediately after a
+  // touch-driven action.
+  const lastTouchAction = useRef(0)
   const project = PROJECTS[index]
   const finishLoading = useCallback(() => {
     window.setTimeout(() => setSceneReady(true), 420)
@@ -266,34 +313,45 @@ function App() {
   }, [])
   const sound = useCallback(() => {
     if (!settings.sound) return
-    try {
-      const ctx = audio.current || new AudioContext()
-      audio.current = ctx
-      if (ctx.state === 'suspended') ctx.resume()
-      const low = ctx.createOscillator()
-      const tap = ctx.createOscillator()
-      const master = ctx.createGain()
-      const gain = ctx.createGain()
-      const tapGain = ctx.createGain()
-      low.type = 'sine'
-      tap.type = 'triangle'
-      low.frequency.setValueAtTime(118, ctx.currentTime)
-      low.frequency.exponentialRampToValueAtTime(64, ctx.currentTime + 0.15)
-      tap.frequency.setValueAtTime(205, ctx.currentTime)
-      tap.frequency.exponentialRampToValueAtTime(92, ctx.currentTime + 0.09)
-      master.gain.setValueAtTime(0.5, ctx.currentTime)
-      gain.gain.setValueAtTime(0.32, ctx.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.17)
-      tapGain.gain.setValueAtTime(0.1, ctx.currentTime)
-      tapGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1)
-      master.connect(ctx.destination)
-      low.connect(gain).connect(master)
-      tap.connect(tapGain).connect(master)
-      low.start()
-      tap.start()
-      low.stop(ctx.currentTime + 0.18)
-      tap.stop(ctx.currentTime + 0.11)
-    } catch {}
+    // Use the single globally-unlocked context rather than creating a new one
+    // (and racing resume()) on every tap.
+    const ctx = sharedAudio.ctx
+    if (!ctx) return
+    // Only schedule the oscillators once the context is actually running — on
+    // iOS a suspended context silently drops anything scheduled during
+    // resume(). unlockAudio() coalesces concurrent resume() calls, so rapid
+    // taps share one in-flight resume instead of stacking them.
+    const emit = () => {
+      if (sharedAudio.ctx?.state !== 'running') return
+      try {
+        const now = ctx.currentTime
+        const low = ctx.createOscillator()
+        const tap = ctx.createOscillator()
+        const master = ctx.createGain()
+        const gain = ctx.createGain()
+        const tapGain = ctx.createGain()
+        low.type = 'sine'
+        tap.type = 'triangle'
+        low.frequency.setValueAtTime(118, now)
+        low.frequency.exponentialRampToValueAtTime(64, now + 0.15)
+        tap.frequency.setValueAtTime(205, now)
+        tap.frequency.exponentialRampToValueAtTime(92, now + 0.09)
+        master.gain.setValueAtTime(0.5, now)
+        gain.gain.setValueAtTime(0.32, now)
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17)
+        tapGain.gain.setValueAtTime(0.1, now)
+        tapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1)
+        master.connect(ctx.destination)
+        low.connect(gain).connect(master)
+        tap.connect(tapGain).connect(master)
+        low.start(now)
+        tap.start(now)
+        low.stop(now + 0.18)
+        tap.stop(now + 0.11)
+      } catch {}
+    }
+    if (ctx.state === 'running') emit()
+    else unlockAudio().then(emit)
   }, [settings.sound])
   const checkSwitchSpeed = useCallback(() => {
     const now = performance.now()
@@ -312,6 +370,11 @@ function App() {
     setMovedOnce(true)
     sound()
   }, [checkSwitchSpeed, sound])
+  // iOS dispatches a synthetic `click` a few ms after `touchend`. When the
+  // navigation already handled the tap in the touch handler, that click would
+  // fire a second action (extra sound / second page change), so call sites
+  // that also run on click check this first.
+  const clickFromTouch = useCallback(() => performance.now() - lastTouchAction.current < 500, [])
   // A swipe on the active icon spins it: distance sets the magnitude, direction sets the sign.
   const spinUp = useCallback((impulse) => {
     const magnitude = THREE.MathUtils.clamp(Math.abs(impulse), 0.6, 9)
@@ -359,6 +422,7 @@ function App() {
       if (!handled && !dragged && !wasOnIcon) {
         const t = event.changedTouches?.[0]
         const x = t ? t.clientX : touch.current.startX
+        lastTouchAction.current = performance.now()
         move(x < window.innerWidth / 2 ? -1 : 1)
       }
     }
@@ -409,9 +473,9 @@ function App() {
   return <><main className={zoomCompact ? 'zoom-compact' : ''} style={{ '--page-colour': settings.colour }}>
     <header><a className="wordmark" href="/" aria-label="Kei — home" onClick={e => { e.preventDefault(); setIndex(0) }}><img src="/k-logo.svg" alt="" /></a><div className="settings-wrap" ref={settingsWrap}><button className="menu" aria-label="Open settings" aria-expanded={settingsOpen} onClick={() => setSettingsOpen(v => !v)}>•••</button>{settingsOpen && <section className="settings" aria-label="Display settings"><div className="setting-row"><span>Sound</span><button className={settings.sound ? 'switch on' : 'switch'} aria-pressed={settings.sound} onClick={() => setSettings(s => ({ ...s, sound: !s.sound }))}><i /></button></div><div className="setting-row"><span>Colour</span><div className="swatches">{['#f7f6f2', '#edf2f5', '#f1ece5'].map((colour, i) => <button key={colour} className={settings.colour === colour ? 'swatch selected' : 'swatch'} style={{ background: colour }} aria-label={['Warm', 'Cool', 'Blush'][i]} onClick={() => setSettings(s => ({ ...s, colour }))} />)}</div></div><div className="setting-row"><span>Rotation</span><button className={settings.rotation ? 'switch on' : 'switch'} aria-pressed={!!settings.rotation} onClick={() => setSettings(s => ({ ...s, rotation: s.rotation ? 0 : 1 }))}><i /></button></div></section>}</div></header>
     <section className="gallery" aria-label="Project carousel" ref={galleryWrap}>
-      <div className="canvas-wrap"><CarouselScene index={index} select={(i, selected) => { if (selected) setOpen(true); else setIndex(i); sound() }} onReady={finishLoading} settings={settings} boosted={spinBoost} onIconPointerDown={() => { iconTouch.current = true }} /></div>
+      <div className="canvas-wrap"><CarouselScene index={index} select={(i, selected) => { if (clickFromTouch()) return; if (selected) setOpen(true); else setIndex(i); sound() }} onReady={finishLoading} settings={settings} boosted={spinBoost} onIconPointerDown={() => { iconTouch.current = true }} /></div>
       <div className="project-info">{fastSwitching ? <h1>Whoa... slow down!</h1> : <><h1>{project.title}</h1><p>{project.note}</p>{project.href ? <a className="learn" href={project.href} target="_blank" rel="noreferrer">Visit GitHub </a> : <button className="learn" onClick={() => setOpen(true)}>{project.pdf ? 'View CV' : 'Explore project'} </button>}</>}</div>
-      <div className="dots">{PROJECTS.map((p, i) => <button key={p.title} onClick={() => { setIndex(i); sound() }} className={i === index ? 'active' : ''} aria-label={`View ${p.title}`} />)}</div>
+      <div className="dots">{PROJECTS.map((p, i) => <button key={p.title} onClick={() => { if (clickFromTouch()) return; setIndex(i); sound() }} className={i === index ? 'active' : ''} aria-label={`View ${p.title}`} />)}</div>
       {!movedOnce && <div className="mobile-nav" aria-hidden={movedOnce}><button className="mobile-arrow prev" aria-label="Previous project" onClick={() => move(-1)}><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5 8 12l7 7" /></svg></button><button className="mobile-arrow next" aria-label="Next project" onClick={() => move(1)}><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg></button></div>}
       {!spunOnce && <div className="spin-hint" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><polyline points="21 3 21 9 15 9" /></svg></div>}
     </section>
