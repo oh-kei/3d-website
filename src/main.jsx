@@ -1,7 +1,7 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Canvas, useFrame, useLoader } from '@react-three/fiber'
-import { ContactShadows, Environment, Float, RoundedBox, Text, useGLTF } from '@react-three/drei'
+import { ContactShadows, Environment, Float, Lightformer, RoundedBox, Text, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import './styles.css'
@@ -57,12 +57,57 @@ const CV_SCRIBBLES = [
   [[-0.4, -0.56], [-0.29, -0.51], [-0.13, -0.59], [0.01, -0.52], [0.16, -0.58], [0.28, -0.51], [0.38, -0.56]],
 ].map((points) => new THREE.CatmullRomCurve3(points.map(([x, y]) => new THREE.Vector3(x, y, 0.061)), false, 'centripetal'))
 const PROJECTS = [
-  { title: 'CV', type: 'Curriculum vitae', year: '2026', color: '#2A2864', note: 'An overview of my projects, work experience, and technical skills.', shape: 'cv', pdf: '/cv/Kei%20CV.pdf', preview: '/cv/Kei-CV.png', favicon: '/favicon/inverted-default.png' },
   { title: 'Veronitech', type: 'Digital product', year: '2025', color: '#2A2864', note: 'Built a responsive landing page for a hospitality-tech startup, and improved the product dashboard experience.', details: 'As a Software Engineer at Veronitech from January to September 2026, I built the company’s responsive landing page from scratch with React, Vite, and Tailwind CSS, then deployed it on Netlify. I also redesigned and enhanced the dashboard, improving the interface, user experience, and its connection to backend systems.', website: 'https://veronitech.co', shape: 'orbit', favicon: '/favicon/veronitech-favicon.png' },
-  { title: 'UniMatch', type: 'Platform design', year: '2025', color: '#8846B4', note: 'Co-developed a social app for Hong Kong university students with more than 2,500 active users.', details: ' Helped develop a social networking app for university students in Hong Kong, growing it to more than 2,500 active users. I built the frontend with React Native, Expo, and TypeScript, and worked with a Supabase and PostgreSQL backend. The product also included email-verification flows and JWT authentication.', website: 'https://unimatch.hk', websiteLabel: 'unimatch.hk', shape: 'tiles', favicon: '/favicon/unimatch-favicon.png' },
-  { title: "Mariner's Markets", type: 'E-commerce development', year: '2026', color: '#031834', modelColor: '#8bbeee', note: 'Built and deployed a fully customised e-commerce platform from scratch for an international sailing-products distributor.', details: 'Contracted As a Web Developer from February to May 2026. I independently developed and deployed an e-commerce platform for an international sailing products distributor using Next.js, Medusa 2.0, and TypeScript. I built key storefront functionality including product customisation, bulk ordering, and Google OAuth authentication, and integrated Resend, Stripe, and MinIO on Railway.', website: 'https://marinersmarkets.com', websiteLabel: 'marinersmarkets.com', shape: 'market', favicon: '/favicon/marinersmarkets-favicon.webp' },
+  {
+    title: 'UniMatch',
+    type: 'Platform design',
+    year: '2025',
+    color: '#8846B4',
+    note: 'Co-developed a social app for Hong Kong university students with more than 2,500 active users.',
+    details: ' Helped develop a social networking app for university students in Hong Kong, growing it to more than 2,500 active users. I built the frontend with React Native, Expo, and TypeScript, and worked with a Supabase and PostgreSQL backend. The product also included email-verification flows and JWT authentication.',
+    website: 'https://unimatch.online',
+    websiteLabel: 'unimatch.online',
+    shape: 'tiles',
+    favicon: '/favicon/unimatch-favicon.png',
+    role: ' Mobile App Developer - Unimatch',
+    media: [
+      { type: 'video', src: '/project-images/unimatch-animation.mp4' },
+    ],
+    brief: {
+      brief: 'UniMatch - a social app for Hong Kong university students - needed to grow a small, early-stage product into a network students would actually use.',
+      problem: 'A new social app has no value until it reaches a critical mass of users, and building trust with students required dependable onboarding: verified accounts, secure sign-in, and a frontend that felt fast and native on the devices they already carried.',
+      outcome: 'I co-developed the app from the ground up, building the frontend with React Native, Expo and TypeScript against a Supabase and PostgreSQL backend, and shipping email-verification flows and JWT authentication. UniMatch grew to more than 2,500 active users.',
+    },
+  },
+  { title: 'CV', type: 'Curriculum vitae', year: '2026', color: '#2A2864', note: 'An overview of my projects, work experience, and technical skills.', shape: 'cv', pdf: '/cv/Kei%20CV.pdf', preview: '/cv/Kei-CV.png', favicon: '/favicon/inverted-default.png' },
+  {
+    title: "Mariner's Markets",
+    type: 'E-commerce development',
+    year: '2026',
+    color: '#031834',
+    modelColor: '#8bbeee',
+    note: 'Built and deployed a fully customised e-commerce platform from scratch for an international sailing-products distributor.',
+    details: 'Contracted As a Web Developer from February to May 2026. I independently developed and deployed an e-commerce platform for an international sailing products distributor using Next.js, Medusa 2.0, and TypeScript. I built key storefront functionality including product customisation, bulk ordering, and Google OAuth authentication, and integrated Resend, Stripe, and MinIO on Railway.',
+    website: 'https://marinersmarkets.com',
+    websiteLabel: 'marinersmarkets.com',
+    shape: 'market',
+    favicon: '/favicon/marinersmarkets-favicon.webp',
+    role: ' Web Developer - Mariner\u2019s Markets',
+    media: [
+      { type: 'video', src: '/project-images/mm-animation.mp4' },
+      { type: 'image', src: '/project-images/mm-catalogue.png', alt: 'Mariner\u2019s Markets product catalogue' },
+      { type: 'image', src: '/project-images/mm-checkout.png', alt: 'Mariner\u2019s Markets checkout' },
+    ],
+    brief: {
+      brief: 'Mariner\u2019s Markets - an international sailing-products distributor - needed a fully customised e-commerce platform built from scratch.',
+      problem: 'Pre-configured storefronts struggled with the client\u2019s needs: products required customisation options, the ability to place bulk orders, and the business wanted full ownership of the storefront rather than paying monthly for third-party tooling.',
+      outcome: 'I built the platform using Medusa 2.0 and a Next.js storefront. I independently developed and deployed it, providing product customisation, bulk ordering and Google OAuth authentication, and integrating Resend, Stripe and MinIO on Railway. The client gained a storefront they fully own and can build upon.',
+    },
+  },
   { title: 'GitHub', type: 'Open source', year: 'Ongoing', color: '#2f343a', note: 'Find my projects here!', shape: 'github', href: 'https://github.com/oh-kei', favicon: '/favicon/github-favicon.png' },
 ]
+// Land on the CV, which sits in the middle of the five dots.
+const INITIAL_INDEX = PROJECTS.findIndex((p) => p.shape === 'cv')
 
 function useModelMotion(group, spinSpeed, active, hovered, rotation, activeScale, idleScale, boost = 0) {
   const hoverStartedAt = useRef(null)
@@ -275,14 +320,105 @@ function CarouselScene({ index, select, onReady, settings, boosted, onIconPointe
         })}
       </group>
       <ContactShadows position={[0, -1.48, 0]} opacity={0.42} scale={16} blur={2.5} far={7} color="#776f65" />
-      <Environment preset="city" />
+      {/* Locally-built environment — no HDR / network request. The drei `city`
+          preset fetches an .hdr from raw.githubusercontent.com, which fails to
+          resolve on some mobile networks and throws inside the Canvas. */}
+      <Environment resolution={64}>
+        <color attach="background" args={['#e9edf2']} />
+        <Lightformer intensity={2.2} position={[0, 4, 2]} scale={[10, 4, 1]} />
+        <Lightformer intensity={1.4} position={[-4, 2, 3]} scale={[6, 6, 1]} color="#dce9ff" />
+        <Lightformer intensity={1.4} position={[4, 2, 3]} scale={[6, 6, 1]} color="#fff0e0" />
+      </Environment>
       <SceneReady onReady={onReady} />
     </Suspense>
   </Canvas>
 }
 
+// A lightweight media gallery. A single video (or more, cycling via the
+// overlaid arrows) that plays through exactly once: it autoplays on open, and
+// the play control replays it from the start. It never loops and the control
+// only ever says "play" — there's no pause state to toggle.
+function MediaCarousel({ items }) {
+  const [active, setActive] = useState(0)
+  const [playing, setPlaying] = useState(false)
+  const videoRef = useRef(null)
+  const item = items[active]
+
+  // Autoplay the active video once when the gallery mounts / the slide changes.
+  useEffect(() => {
+    const el = videoRef.current
+    if (!el) return
+    el.currentTime = 0
+    el.play().then(() => setPlaying(true)).catch(() => setPlaying(false))
+  }, [active])
+
+  // Replaying is only ever a full start from the beginning.
+  const playOnce = () => {
+    const el = videoRef.current
+    if (!el) return
+    el.currentTime = 0
+    el.play().then(() => setPlaying(true)).catch(() => setPlaying(false))
+  }
+  const step = (dir) => setActive((i) => (i + dir + items.length) % items.length)
+  // Arrows are only truly needed with multiple items, but we always render
+  // them so the controls read consistently; with a single item they're greyed out.
+  const canStep = items.length > 1
+  const atStart = active === 0
+  const atEnd = active === items.length - 1
+
+  return <div className="media-gallery">
+    {item.type === 'video'
+      ? <video key={item.src} ref={videoRef} className="media-el" src={item.src} playsInline muted preload="auto" onClick={playOnce} onEnded={() => setPlaying(false)} />
+      : <img className="media-el" src={item.src} alt={item.alt || ''} />}
+    <div className="media-controls">
+      {items.length > 1 && <div className="media-dots">{items.map((_, i) => <button key={i} className={i === active ? 'active' : ''} aria-label={`Show media ${i + 1}`} onClick={() => setActive(i)} />)}</div>}
+      <div className="media-nav">
+        <button className="media-arrow prev" aria-label="Previous media" disabled={!canStep || atStart} onClick={() => canStep && !atStart && step(-1)}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5 8 12l7 7" /></svg>
+        </button>
+        <button className="media-arrow next" aria-label="Next media" disabled={!canStep || atEnd} onClick={() => canStep && !atEnd && step(1)}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>
+        </button>
+      </div>
+      {item.type === 'video' && !playing && <button className="media-play" aria-label="Play video" onClick={playOnce}>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 5v14l12-7z" /></svg>
+      </button>}
+    </div>
+  </div>
+}
+
+function CaseStudyModal({ project, onClose }) {
+  const blocks = project.brief
+  const block = (label) => <div className="case-block">
+    <h3>{label}</h3>
+    <p>{blocks[label.toLowerCase()]}</p>
+  </div>
+  return <div className="overlay case-overlay" role="dialog" aria-modal="true" aria-label={`${project.title} case study`} onMouseDown={onClose}>
+    <article className="case-modal" onMouseDown={(e) => e.stopPropagation()}>
+      <button className="close" onClick={onClose} aria-label="Close">×</button>
+      {/* top-left: title + link + Brief */}
+      <div className="case-cell case-intro">
+        <div className="case-intro-head">
+          <h2>{project.role}</h2>
+          {project.website && <a className="visit" href={project.website} target="_blank" rel="noreferrer">{project.websiteLabel || project.website} ↗</a>}
+        </div>
+        <div className="case-intro-body">{block('Brief')}</div>
+      </div>
+      {/* top-right: media player */}
+      <div className="case-cell case-media">
+        <MediaCarousel items={project.media} />
+      </div>
+      {/* breakline across both columns */}
+      <hr className="case-divider" />
+      {/* below the line: Problem (left) + Outcome (right) */}
+      <div className="case-cell case-problem">{block('Problem')}</div>
+      <div className="case-cell case-outcome">{block('Outcome')}</div>
+    </article>
+  </div>
+}
+
 function App() {
-  const [index, setIndex] = useState(0)
+  const [index, setIndex] = useState(INITIAL_INDEX)
   const [open, setOpen] = useState(false)
   const [sceneReady, setSceneReady] = useState(false)
   const [hideLoader, setHideLoader] = useState(false)
@@ -291,6 +427,8 @@ function App() {
   const [settings, setSettings] = useState({ sound: true, colour: '#f7f6f2', rotation: 1 })
   const [spinBoost, setSpinBoost] = useState(0)
   const [zoomCompact, setZoomCompact] = useState(false)
+  
+  const [zoomMobile, setZoomMobile] = useState(false)
   const [movedOnce, setMovedOnce] = useState(false)
   const [spunOnce, setSpunOnce] = useState(false)
 
@@ -377,7 +515,8 @@ function App() {
   const clickFromTouch = useCallback(() => performance.now() - lastTouchAction.current < 500, [])
   // A swipe on the active icon spins it: distance sets the magnitude, direction sets the sign.
   const spinUp = useCallback((impulse) => {
-    const magnitude = THREE.MathUtils.clamp(Math.abs(impulse), 0.6, 9)
+    // Gentler per-swipe spin, but a higher top speed for a fast flick.
+    const magnitude = THREE.MathUtils.clamp(Math.abs(impulse), 0.4, 14)
     setSpinBoost(Math.sign(impulse || 1) * magnitude)
     setSpunOnce(true)
     if (boostTimeout.current) window.clearTimeout(boostTimeout.current)
@@ -408,7 +547,7 @@ function App() {
       if (touch.current.onIcon && Math.abs(dx) > 16 && Math.abs(dx) > Math.abs(dy)) {
         // Swiping across the icon nudges its spin proportionally to how far you dragged.
         touch.current.handled = true
-        spinUp(dx * 0.06)
+        spinUp(dx * 0.03)
       }
     }
     const onTouchEnd = (event) => {
@@ -445,6 +584,9 @@ function App() {
       const innerW = window.innerWidth || 1
       const zoom = outerW / innerW
       setZoomCompact(zoom >= 1.9)
+      // Past ~150% zoom the desktop case-study layout gets cramped, so we drop
+      // it to the single-column mobile layout instead of fighting the scale.
+      setZoomMobile(zoom >= 1.5)
     }
     evaluate()
     window.addEventListener('resize', evaluate)
@@ -470,8 +612,8 @@ function App() {
     return () => window.removeEventListener('pointerdown', closeOnOutsideClick)
   }, [settingsOpen])
 
-  return <><main className={zoomCompact ? 'zoom-compact' : ''} style={{ '--page-colour': settings.colour }}>
-    <header><a className="wordmark" href="/" aria-label="Kei — home" onClick={e => { e.preventDefault(); setIndex(0) }}><img src="/k-logo.svg" alt="" /></a><div className="settings-wrap" ref={settingsWrap}><button className="menu" aria-label="Open settings" aria-expanded={settingsOpen} onClick={() => setSettingsOpen(v => !v)}>•••</button>{settingsOpen && <section className="settings" aria-label="Display settings"><div className="setting-row"><span>Sound</span><button className={settings.sound ? 'switch on' : 'switch'} aria-pressed={settings.sound} onClick={() => setSettings(s => ({ ...s, sound: !s.sound }))}><i /></button></div><div className="setting-row"><span>Colour</span><div className="swatches">{['#f7f6f2', '#edf2f5', '#f1ece5'].map((colour, i) => <button key={colour} className={settings.colour === colour ? 'swatch selected' : 'swatch'} style={{ background: colour }} aria-label={['Warm', 'Cool', 'Blush'][i]} onClick={() => setSettings(s => ({ ...s, colour }))} />)}</div></div><div className="setting-row"><span>Rotation</span><button className={settings.rotation ? 'switch on' : 'switch'} aria-pressed={!!settings.rotation} onClick={() => setSettings(s => ({ ...s, rotation: s.rotation ? 0 : 1 }))}><i /></button></div></section>}</div></header>
+  return <><main className={[zoomCompact && 'zoom-compact', zoomMobile && 'zoom-mobile'].filter(Boolean).join(' ')} style={{ '--page-colour': settings.colour }}>
+    <header><a className="wordmark" href="/" aria-label="Kei — home" onClick={e => { e.preventDefault(); setIndex(INITIAL_INDEX) }}><img src="/k-logo.svg" alt="" /></a><div className="settings-wrap" ref={settingsWrap}><button className="menu" aria-label="Open settings" aria-expanded={settingsOpen} onClick={() => setSettingsOpen(v => !v)}>•••</button>{settingsOpen && <section className="settings" aria-label="Display settings"><div className="setting-row"><span>Sound</span><button className={settings.sound ? 'switch on' : 'switch'} aria-pressed={settings.sound} onClick={() => setSettings(s => ({ ...s, sound: !s.sound }))}><i /></button></div><div className="setting-row"><span>Colour</span><div className="swatches">{['#f7f6f2', '#edf2f5', '#f1ece5'].map((colour, i) => <button key={colour} className={settings.colour === colour ? 'swatch selected' : 'swatch'} style={{ background: colour }} aria-label={['Warm', 'Cool', 'Blush'][i]} onClick={() => setSettings(s => ({ ...s, colour }))} />)}</div></div><div className="setting-row"><span>Rotation</span><button className={settings.rotation ? 'switch on' : 'switch'} aria-pressed={!!settings.rotation} onClick={() => setSettings(s => ({ ...s, rotation: s.rotation ? 0 : 1 }))}><i /></button></div></section>}</div></header>
     <section className="gallery" aria-label="Project carousel" ref={galleryWrap}>
       <div className="canvas-wrap"><CarouselScene index={index} select={(i, selected) => { if (clickFromTouch()) return; if (selected) setOpen(true); else setIndex(i); sound() }} onReady={finishLoading} settings={settings} boosted={spinBoost} onIconPointerDown={() => { iconTouch.current = true }} /></div>
       <div className="project-info">{fastSwitching ? <h1>Whoa... slow down!</h1> : <><h1>{project.title}</h1><p>{project.note}</p>{project.href ? <a className="learn" href={project.href} target="_blank" rel="noreferrer">Visit GitHub </a> : <button className="learn" onClick={() => setOpen(true)}>{project.pdf ? 'View CV' : 'Explore project'} </button>}</>}</div>
@@ -479,7 +621,9 @@ function App() {
       {!movedOnce && <div className="mobile-nav" aria-hidden={movedOnce}><button className="mobile-arrow prev" aria-label="Previous project" onClick={() => move(-1)}><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5 8 12l7 7" /></svg></button><button className="mobile-arrow next" aria-label="Next project" onClick={() => move(1)}><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg></button></div>}
       {!spunOnce && <div className="spin-hint" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><polyline points="21 3 21 9 15 9" /></svg></div>}
     </section>
-    {open && <div className="overlay" role="dialog" aria-modal="true" aria-label={`${project.title} details`} onMouseDown={() => setOpen(false)}><article className={project.pdf ? 'cv-modal' : ''} onMouseDown={e => e.stopPropagation()}><>{project.pdf && <a className="cv-download" href={project.pdf} download aria-label="Download Kei CV">↓</a>}<button className="close" onClick={() => setOpen(false)}>Close ×</button></>{project.pdf ? <><h2>{project.title}</h2><img className="cv-preview" src={project.preview} alt="Kei CV" /></> : <><h2>{project.title}</h2><p>{project.details || `${project.note}`}{project.website && <> <a href={project.website} target="_blank" rel="noreferrer">{project.websiteLabel || 'veronitech.co'}</a></>}</p>{project.href && <a className="visit" href={project.href} target="_blank" rel="noreferrer">Visit GitHub ↗</a>}</>}</article></div>}
+    {open && (project.brief
+      ? <CaseStudyModal project={project} onClose={() => setOpen(false)} />
+      : <div className="overlay" role="dialog" aria-modal="true" aria-label={`${project.title} details`} onMouseDown={() => setOpen(false)}><article className={project.pdf ? 'cv-modal' : ''} onMouseDown={e => e.stopPropagation()}><>{project.pdf && <a className="cv-download" href={project.pdf} download aria-label="Download Kei CV">↓</a>}<button className="close" onClick={() => setOpen(false)}>Close ×</button></>{project.pdf ? <><h2>{project.title}</h2><img className="cv-preview" src={project.preview} alt="Kei CV" /></> : <><h2>{project.title}</h2><p>{project.details || `${project.note}`}{project.website && <> <a href={project.website} target="_blank" rel="noreferrer">{project.websiteLabel || 'veronitech.co'}</a></>}</p>{project.href && <a className="visit" href={project.href} target="_blank" rel="noreferrer">Visit GitHub ↗</a>}</>}</article></div>)}
   </main>{!hideLoader && <div className={sceneReady ? 'loader leaving' : 'loader'} style={{ background: settings.colour }} role="status" aria-live="polite"><div className="loader-mark" aria-label="Kei" /></div>}</>
 }
 

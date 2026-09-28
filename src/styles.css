@@ -11,6 +11,7 @@ main.zoom-compact .overlay h2{font-size:38px}
 main.zoom-compact .overlay article{padding:44px}
 
 /* Refined gallery controls */
+/* Refined gallery controls */
 
 .wordmark{display:grid;place-items:center;height:30px;text-decoration:none}.wordmark img{display:block;height:42px;width:auto}
 .settings-wrap{position:relative}.menu{width:34px;height:34px;padding:0;border:0;background:transparent;font-size:15px;line-height:1}.settings{position:absolute;right:0;top:42px;width:210px;padding:8px 14px;background:#fffefa;border:1px solid #d9d4ca;border-radius:12px;box-shadow:0 15px 35px #25231d20;animation:rise .18s ease;z-index:10}.setting-row{min-height:43px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ece8e0;font-size:11px;font-weight:600}.setting-row:last-child{border-bottom:0}.switch{width:30px;height:18px;border:0;border-radius:99px;padding:2px;background:#c9c5bd;transition:.2s}.switch i{display:block;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px #0002;transition:.2s}.switch.on{background:#292824}.switch.on i{transform:translateX(12px)}.swatches{display:flex;gap:7px}.swatch{width:18px;height:18px;padding:0;border:1px solid #bdb8af;border-radius:50%;box-shadow:inset 0 0 0 2px transparent}.swatch.selected{box-shadow:inset 0 0 0 2px #292824;border-color:#292824}
@@ -62,3 +63,80 @@ main.zoom-compact .overlay article{padding:44px}
   .spin-hint{display:grid;place-items:center;position:absolute;top:54px;left:50%;transform:translateX(-50%);z-index:3;color:#9a948a;pointer-events:none;animation:nav-blink 2s ease-in-out infinite}
 }
 @media(max-width:600px) and (prefers-reduced-motion:reduce){.mobile-arrow,.spin-hint{animation:none;opacity:1}}
+
+/* ==========================================================================
+   Case study modal (projects with a `brief` — e.g. Mariner's Markets)
+   A centred popup (~80% of the screen) with rounded corners over the page.
+   Grid: top-left title + Brief/Problem, top-right media, bottom Insight/Outcome.
+   ========================================================================== */
+.case-overlay{padding:0}
+.overlay article.case-modal{position:relative;width:80vw;height:80vh;height:80dvh;background:#f7f6f2;border-radius:24px;padding:clamp(28px,3vw,54px);box-shadow:0 30px 90px #1d1c182e;animation:rise .3s ease;overflow:hidden;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);grid-template-rows:auto auto 1fr;gap:clamp(20px,2.4vw,40px) clamp(24px,3.4vw,64px)}
+.case-modal .close{position:absolute;right:clamp(18px,2vw,26px);top:clamp(12px,1.6vw,20px);padding:0;font-size:38px;font-weight:300;line-height:1;letter-spacing:0;text-transform:none;color:#9a948a;transition:color .2s;z-index:3}
+.case-modal .close:hover{color:#171716}
+
+/* Cells laid out on the shared 3-row grid. */
+.case-cell{min-width:0;min-height:0}
+.case-intro{grid-column:1;grid-row:1;display:flex;flex-direction:column;align-items:flex-start;gap:0}
+.case-intro-head{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.case-intro-body{display:flex;flex-direction:column;width:100%;margin-top:clamp(16px,2.2vw,30px)}
+.case-media{grid-column:2;grid-row:1;display:flex;align-items:flex-start;justify-content:flex-end;padding:clamp(16px,3vw,44px) clamp(0px,2vw,36px) 0 0}
+/* Breakline spanning both columns, with Problem/Outcome a little below it. */
+.case-divider{grid-column:1 / -1;grid-row:2;border:0;border-top:1px solid #e3ded4;margin:0;align-self:center}
+.case-problem{grid-column:1;grid-row:3;align-self:start;margin-top:clamp(14px,2vw,28px)}
+.case-outcome{grid-column:2;grid-row:3;align-self:start;margin-top:clamp(14px,2vw,28px)}
+
+.case-intro h2{font-family:'Playfair Display',Georgia,serif;font-size:clamp(28px,3vw,46px);font-weight:500;line-height:1.04;letter-spacing:-.045em;margin:0}
+.case-intro .visit{margin:2px 0 0}
+.case-block{min-width:0}
+.case-block h3{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:#2f5fa8;margin:0 0 8px}
+.case-block p{font-size:13px;line-height:1.68;color:#5c574f;margin:0}
+
+/* Media gallery — box shrinks to the media (no fixed aspect / black bars).
+   Controls float over the media: dots top-left, arrows bottom-left, play bottom-right. */
+.case-media .media-gallery{position:relative;display:inline-block;min-width:0;width:100%;max-width:560px;line-height:0;border-radius:10px;overflow:hidden}
+.media-el{display:block;width:100%;height:auto}
+video.media-el{cursor:pointer}
+.media-controls{position:absolute;inset:0;z-index:2;pointer-events:none;line-height:1}
+.media-controls>*{pointer-events:auto}
+.media-nav{position:absolute;left:12px;bottom:12px;display:flex;align-items:center;gap:8px}
+.media-dots{position:absolute;left:12px;top:12px;display:flex;gap:7px}
+.media-play,.media-arrow{width:40px;height:40px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;transition:transform .2s,background .2s,opacity .2s;flex:0 0 auto;box-shadow:0 2px 10px #17171633}
+.media-play{position:absolute;right:12px;bottom:12px;background:#f7f6f2e6;color:#171716}
+.media-play:hover{transform:scale(1.06);background:#fff}
+.media-arrow{background:#171716cc;color:#fff}
+.media-arrow:hover:not(:disabled){transform:scale(1.06);background:#171716}
+.media-arrow:disabled{opacity:.3;cursor:default;box-shadow:none;background:#17171680}
+.media-dots button{width:6px;height:6px;padding:0;border:0;border-radius:50%;background:#ffffff85;box-shadow:0 1px 4px #00000055;transition:.25s}
+.media-dots button.active{width:18px;border-radius:8px;background:#fff}
+
+/* At ≥150% zoom the modal switches to the single-column layout (see the
+   `main.zoom-mobile` rules below), so no separate zoomed-in type scaling. */
+
+/* Tablet / mobile, or desktop zoomed past ~150%: switch the case-study modal to
+   a single-column, internally-scrollable "mobile style" layout so it doesn't
+   balloon with the browser scale. Rows collapse to `auto` so content sizes
+   itself instead of one row greedily filling the height. */
+@media(max-width:900px){
+  .overlay article.case-modal{width:92vw;height:90vh;height:90dvh;grid-template-columns:1fr;grid-template-rows:auto;gap:0;padding:24px 20px;overflow:auto;display:block}
+  .case-intro,.case-media,.case-problem,.case-outcome,.case-divider{grid-column:auto;grid-row:auto}
+  .case-intro-body{margin-top:14px}
+  .case-media{margin-top:20px;justify-content:flex-start;padding:0}
+  .case-divider{margin:24px 0 0}
+  .case-problem{margin-top:20px}
+  .case-outcome{margin-top:20px}
+  .case-intro h2{font-size:26px}
+  .case-block p{font-size:12.5px}
+  .case-media .media-gallery{max-width:100%;max-height:42vh}
+  .media-el{max-height:42vh;object-fit:contain;margin:0 auto}
+}
+main.zoom-mobile .overlay article.case-modal{width:92vw;height:90vh;height:90dvh;grid-template-columns:1fr;grid-template-rows:auto;gap:0;padding:24px 20px;overflow:auto;display:block}
+main.zoom-mobile .case-intro,main.zoom-mobile .case-media,main.zoom-mobile .case-problem,main.zoom-mobile .case-outcome,main.zoom-mobile .case-divider{grid-column:auto;grid-row:auto}
+main.zoom-mobile .case-intro-body{margin-top:14px}
+main.zoom-mobile .case-media{margin-top:20px;justify-content:flex-start;padding:0}
+main.zoom-mobile .case-divider{margin:24px 0 0}
+main.zoom-mobile .case-problem{margin-top:20px}
+main.zoom-mobile .case-outcome{margin-top:20px}
+main.zoom-mobile .case-intro h2{font-size:26px}
+main.zoom-mobile .case-block p{font-size:12.5px}
+main.zoom-mobile .case-media .media-gallery{max-width:100%;max-height:42vh}
+main.zoom-mobile .media-el{max-height:42vh;object-fit:contain;margin:0 auto}
